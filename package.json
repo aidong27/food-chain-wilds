@@ -26,6 +26,7 @@
     "wrangler": "^4.133.0"
   },
   "dependencies": {
+    "lucide-preact": "1.48.0",
     "preact": "^10.29.8"
   }
 }

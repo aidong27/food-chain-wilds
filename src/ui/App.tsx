@@ -1,16 +1,17 @@
 import { useEffect } from 'preact/hooks';
+import type { PhaseId } from '../game/data';
 import { leave, toggleSound, urls, useApp } from '../client/store';
+import { copyInvite, numeral } from './common';
 import { DialogHost, confirmLeave, showBestiary, showRules } from './dialogs';
 import { Finish } from './Finish';
-import { Home, HomeFooter, Lobby, copyInvite } from './Home';
+import { Home, Lobby } from './Home';
+import { Icon, phaseIcon } from './icons';
 import { Play } from './Play';
 
-const DIFFICULTY_NAME = { easy: '入门', normal: '标准', hard: '老练' } as const;
-
-function TopBar() {
+function TopBar({ overHero }: { overHero: boolean }) {
   const { view, connected, sound, link } = useApp();
   return (
-    <header class="topbar">
+    <header class={`topbar ${overHero ? 'over-hero' : ''}`}>
       <a
         class="brand"
         href={urls.home}
@@ -21,40 +22,45 @@ function TopBar() {
           confirmLeave();
         }}
       >
-        <img src={urls.asset('favicon.svg')} alt="" width={43} height={43} />
+        <img src={urls.asset('favicon.svg')} alt="" width={34} height={34} />
         <span>
-          食物链<small>THE FOOD CHAIN</small>
+          <b>食物链</b>
+          <small>荒野生存博弈</small>
         </span>
       </a>
+      <span class="spacer" />
       <nav>
-        <button class="nav-btn" onClick={showRules}>
-          生存手册
+        <button class="btn quiet" onClick={showRules} aria-label="生存手册">
+          <Icon name="rules" size={17} />
+          <span class="label-text">生存手册</span>
         </button>
-        <button class="nav-btn" onClick={() => showBestiary()}>
-          动物图鉴
+        <button class="btn quiet" onClick={() => showBestiary()} aria-label="动物图鉴">
+          <Icon name="bestiary" size={17} />
+          <span class="label-text">动物图鉴</span>
         </button>
       </nav>
       <div class="top-actions">
-        {view?.mode === 'solo' && <span class="mode-chip">单人练习 · {DIFFICULTY_NAME[view.difficulty]}</span>}
-        {view?.mode === 'online' && (
+        {view?.mode === 'online' && view.phase === 'lobby' && (
           <>
-            <span class={`connection ${connected ? 'online' : ''}`}>{connected ? '已连接' : '重连中'}</span>
-            <button class="room-code" onClick={() => copyInvite(view.code)}>
-              房间 {view.code}
+            <span class={`conn ${connected ? 'on' : ''}`} role="status" aria-label={connected ? '已连接' : '重连中'}>
+              <Icon name={connected ? 'online' : 'offline'} size={15} />
+              <span class="label-text" aria-hidden="true">
+                {connected ? '已连接' : '重连中'}
+              </span>
+            </span>
+            <button class="room-code" onClick={() => copyInvite(view.code)} title="复制邀请链接">
+              {view.code}
+              <Icon name="copy" size={14} />
             </button>
           </>
         )}
-        {!view && link === null && (
-          <span class="edition">
-            荒野纪事 <b>02</b>
-          </span>
-        )}
-        <button class="icon-button" onClick={toggleSound} aria-label={sound ? '关闭音效' : '开启音效'} aria-pressed={sound}>
-          {sound ? '♫' : '♪'}
+        <button class="icon-btn" onClick={toggleSound} aria-label={sound ? '关闭音效' : '开启音效'} aria-pressed={sound}>
+          <Icon name={sound ? 'soundOn' : 'soundOff'} />
         </button>
         {link && (
-          <button class="nav-btn" onClick={confirmLeave}>
-            离开
+          <button class="btn quiet" onClick={confirmLeave} aria-label="离开">
+            <Icon name="leave" size={17} />
+            <span class="label-text">离开</span>
           </button>
         )}
       </div>
@@ -72,12 +78,17 @@ function Toast() {
 }
 
 function Banner() {
-  const { banner } = useApp();
+  const { banner, view } = useApp();
   if (!banner) return null;
+  const phase = view?.phase;
+  const icon = phase && phase !== 'lobby' && phase !== 'finished' ? (phase === 'talk' ? 'round' : phaseIcon(phase as PhaseId)) : null;
   return (
     <div class="phase-banner" key={banner.id} aria-hidden="true">
-      <strong>{banner.title}</strong>
-      <span>{banner.detail}</span>
+      <div>
+        {icon && <Icon name={icon} size={30} />}
+        <strong>{phase === 'talk' && view ? `第${numeral(view.round)}夜` : banner.title}</strong>
+        <span>{banner.detail}</span>
+      </div>
     </div>
   );
 }
@@ -85,11 +96,11 @@ function Banner() {
 function Connecting() {
   return (
     <main class="connecting">
-      <div class="panel">
+      <div class="card connecting-card">
         <span class="spinner" aria-hidden="true" />
-        <h2>正在进入荒野…</h2>
-        <p>连接房间中。若长时间没有响应，可以返回首页重试；单人练习不需要网络。</p>
-        <button class="secondary" onClick={leave}>
+        <h2 class="brush">正在进入荒野…</h2>
+        <p class="muted">连接房间中。若长时间没有响应，可以返回首页重试；单人练习不需要网络。</p>
+        <button class="btn ghost" onClick={leave}>
           返回首页
         </button>
       </div>
@@ -113,13 +124,8 @@ export function App() {
   }, [screen]);
   return (
     <>
-      <TopBar />
-      {screen === 'home' && (
-        <>
-          <Home />
-          <HomeFooter />
-        </>
-      )}
+      {screen !== 'play' && <TopBar overHero={screen === 'home'} />}
+      {screen === 'home' && <Home />}
       {screen === 'connecting' && <Connecting />}
       {screen === 'lobby' && <Lobby />}
       {screen === 'play' && <Play />}

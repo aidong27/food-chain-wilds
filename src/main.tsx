@@ -3,7 +3,10 @@ import type { RegionId } from './game/data';
 import { boot, getState, select } from './client/store';
 import { registerGameTools } from './client/webmcp';
 import { App } from './ui/App';
-import './ui/styles.css';
+import './ui/styles/base.css';
+import './ui/styles/map.css';
+import './ui/styles/play.css';
+import './ui/styles/screens.css';
 
 render(<App />, document.getElementById('app')!);
 boot();

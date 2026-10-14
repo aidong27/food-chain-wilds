@@ -1,8 +1,9 @@
 import { SCORE, species } from '../game/data';
 import type { GameView } from '../game/view';
 import { leave, playAgain, useApp } from '../client/store';
-import { Avatar, pad } from './common';
+import { Portrait, numeral } from './common';
 import { showReview } from './dialogs';
+import { Icon } from './icons';
 
 function download(view: GameView) {
   const blob = new Blob(
@@ -21,76 +22,120 @@ export function Finish() {
   const { view } = useApp();
   const g = view!;
   const me = g.me!;
+  const s = species(me.animal);
+  const solo = g.mode === 'solo';
   const mine = g.players.find(p => p.id === me.id)!;
   const ranking = [...g.players].sort((a, b) => Number(b.alive) - Number(a.alive) || b.score! - a.score!);
   const guesses = Object.entries(me.guesses);
-  const right = guesses.filter(([id, s]) => g.players.find(p => p.id === id)?.animal === s).length;
+  const right = guesses.filter(([id, animal]) => g.players.find(p => p.id === id)?.animal === animal).length;
+  const survivors = g.players.filter(p => p.alive).length;
   return (
-    <main class="end-screen">
-      <span class="eyebrow gold">AFTER THE SEVENTH NIGHT</span>
-      <h1>{me.alive ? '你听见了第八日的风。' : '荒野记得你的足迹。'}</h1>
-      <p>{me.alive ? '你成功活过七个回合，获得生存胜利。' : `你在第 ${me.diedRound} 回合倒下。每一次选择，都为下一次生存留下了经验。`}</p>
-      <div class="end-score">
-        <Avatar animal={me.animal} />
-        <div>
-          <small>你的身份 · {species(me.animal).name}</small>
-          <strong>
-            {mine.score} <span>分</span>
-          </strong>
-          <p>
-            {me.meals} 次进食 · {me.hunts} 次成功捕食{guesses.length ? ` · 推理 ${right}/${guesses.length} 正确` : ''}
+    <main class="finish end-screen">
+      <section class="finish-hero">
+        <div class={`finish-portrait ${me.alive ? 'won' : 'lost'}`}>
+          <Portrait animal={me.animal} face />
+          <span class="chip">
+            <Icon name={me.alive ? 'trophy' : 'death'} size={13} />
+            {s.name}
+          </span>
+        </div>
+        <div class="finish-copy">
+          <p class="eyebrow">{me.alive ? '生存胜利' : `倒在第${numeral(me.diedRound ?? 0)}夜`}</p>
+          <h1 class="brush">{me.alive ? '你听见了第八日的风。' : '荒野记得你的足迹。'}</h1>
+          <p class="lead">
+            {me.alive
+              ? `作为${s.name}，你活过了全部七个回合。`
+              : `你是${s.name}，在第 ${me.diedRound} 回合倒下。每一次选择，都为下一次生存留下了经验。`}
+            本局共有 {survivors} 位居民活到最后。
           </p>
-        </div>
-      </div>
-      <div class="ranking" role="table" aria-label="终局排名">
-        <div class="ranking-head" role="row">
-          <span>席位 / 玩家</span>
-          <span>真实身份</span>
-          <span>结局</span>
-          <span>得分</span>
-        </div>
-        {ranking.map(q => {
-          const myGuess = me.guesses[q.id];
-          return (
-            <div key={q.id} role="row" class={`ranking-row ${q.id === me.id ? 'self' : ''}`}>
-              <span>
-                <b>{pad(q.seat)}</b> {q.name}
-                {q.id === me.id ? ' · 你' : ''}
-              </span>
-              <span>
-                {species(q.animal!).name}
-                {myGuess && (
-                  <em class={myGuess === q.animal ? 'right' : 'wrong'}>
-                    {myGuess === q.animal ? ' ✓' : ` ✗ 你猜${species(myGuess).name}`}
-                  </em>
-                )}
-              </span>
-              <span class={q.alive ? 'survived' : 'muted'}>{q.alive ? '生存胜利' : `第 ${q.diedRound} 回合离开`}</span>
-              <strong>{q.score}</strong>
+          <dl class="finish-stats">
+            <div class="main">
+              <dt>得分</dt>
+              <dd>{mine.score}</dd>
             </div>
-          );
-        })}
-      </div>
-      <p class="score-rule">
-        得分 = 存活 {SCORE.alive} + 剩余 HP ×{SCORE.hp} + 进食 ×{SCORE.meal} + 捕食 ×{SCORE.hunt} + 推理正确 ×{SCORE.rightGuess} −
-        推理错误（最低 0）
-      </p>
-      <div class="end-actions">
-        {g.mode === 'solo' ? (
-          <button class="primary" onClick={playAgain}>
-            再来一局
-          </button>
-        ) : null}
-        <button class={g.mode === 'solo' ? 'secondary' : 'primary'} onClick={leave}>
-          {g.mode === 'solo' ? '返回首页' : '再入荒野'}
-        </button>
-        <button class="secondary" onClick={showReview}>
-          查看完整记录
-        </button>
-        <button class="secondary" onClick={() => download(g)}>
-          下载本局复盘
-        </button>
-      </div>
+            <div>
+              <dt>进食</dt>
+              <dd>{me.meals}</dd>
+            </div>
+            <div>
+              <dt>成功捕食</dt>
+              <dd>{me.hunts}</dd>
+            </div>
+            <div>
+              <dt>推理正确</dt>
+              <dd>{guesses.length ? `${right}/${guesses.length}` : '—'}</dd>
+            </div>
+          </dl>
+          <div class="finish-actions">
+            {solo && (
+              <button class="btn primary large" onClick={playAgain}>
+                <Icon name="again" size={18} />
+                再来一局
+              </button>
+            )}
+            <button class={`btn ${solo ? 'ghost' : 'primary'} large`} onClick={leave}>
+              <Icon name="home" size={18} />
+              {solo ? '返回首页' : '再入荒野'}
+            </button>
+            <button class="btn quiet" onClick={showReview}>
+              <Icon name="journal" size={17} />
+              完整记录
+            </button>
+            <button class="btn quiet" onClick={() => download(g)}>
+              <Icon name="download" size={17} />
+              下载复盘
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <section class="card ranking" aria-label="终局排名">
+        <header class="section-head">
+          <h2 class="brush">终局排名</h2>
+          <span class="muted small">全部身份已揭晓</span>
+        </header>
+        <ol>
+          {ranking.map((q, i) => {
+            const animal = q.animal!;
+            const guess = me.guesses[q.id];
+            return (
+              <li key={q.id} class={`rank-row ${q.id === me.id ? 'self' : ''} ${q.alive ? 'alive' : 'fallen'}`}>
+                <span class="rank-no">{i + 1}</span>
+                <Portrait animal={animal} face class="rank-face" />
+                <span class="rank-who">
+                  <b>
+                    {q.name}
+                    {q.id === me.id && <em>你</em>}
+                  </b>
+                  <small>
+                    {q.seat} 号 · {species(animal).name}
+                    {guess && (
+                      <i class={guess === animal ? 'right' : 'wrong'}>
+                        {guess === animal ? ' · 你猜对了' : ` · 你猜是${species(guess).name}`}
+                      </i>
+                    )}
+                  </small>
+                </span>
+                <span class="rank-fate">
+                  {q.alive ? (
+                    <>
+                      <Icon name="trophy" size={14} />
+                      生存
+                    </>
+                  ) : (
+                    `第 ${q.diedRound} 夜离开`
+                  )}
+                </span>
+                <b class="rank-score">{q.score}</b>
+              </li>
+            );
+          })}
+        </ol>
+        <p class="score-rule">
+          得分 = 存活 {SCORE.alive} + 剩余生命 ×{SCORE.hp} + 进食 ×{SCORE.meal} + 捕食 ×{SCORE.hunt} + 推理正确 ×{SCORE.rightGuess} −
+          推理错误（最低 0）
+        </p>
+      </section>
     </main>
   );
 }
