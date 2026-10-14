@@ -430,11 +430,12 @@ function HuntTargets({ view, choose }: { view: GameView; choose: (choice: FoodCh
             class={`target ${p.target === q.id ? 'on' : ''}`}
             role="radio"
             aria-checked={p.target === q.id}
+            aria-label={`${q.seat} 号 ${q.name}`}
             disabled={p.ready}
             onClick={() => choose('hunt', q.id)}
           >
             <PlayerFace view={view} player={q} />
-            {q.seat} {q.name}
+            {q.name}
             {near.has(q.id) && <Icon name="move" size={13} label="曾在你所在地区出现" />}
           </button>
         ))}

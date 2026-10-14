@@ -598,8 +598,10 @@
   transition: background-color 0.15s ease;
 }
 
-.player-row:hover {
-  background: rgba(255, 255, 255, 0.05);
+@media (hover: hover) {
+  .player-row:hover {
+    background: rgba(255, 255, 255, 0.05);
+  }
 }
 
 .player-row.self {
@@ -843,9 +845,11 @@
   color: var(--green);
 }
 
-.region-tile:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.07);
-  border-color: var(--line-2);
+@media (hover: hover) {
+  .region-tile:hover:not(:disabled) {
+    background: rgba(255, 255, 255, 0.07);
+    border-color: var(--line-2);
+  }
 }
 
 .region-tile.on,
@@ -973,9 +977,11 @@
   color: var(--red);
 }
 
-.tile:hover:not(:disabled) {
-  background: var(--surface-3);
-  border-color: var(--amber-line);
+@media (hover: hover) {
+  .tile:hover:not(:disabled) {
+    background: var(--surface-3);
+    border-color: var(--amber-line);
+  }
 }
 
 .tile:disabled {
@@ -1034,15 +1040,21 @@
 }
 
 .target .face > em {
-  display: none;
+  right: -5px;
+  bottom: -5px;
+  min-width: 15px;
+  height: 15px;
+  font-size: 9.5px;
 }
 
 .target .icon {
   color: var(--violet);
 }
 
-.target:hover:not(:disabled) {
-  border-color: var(--amber-line);
+@media (hover: hover) {
+  .target:hover:not(:disabled) {
+    border-color: var(--amber-line);
+  }
 }
 
 .target.on,
@@ -1338,8 +1350,10 @@
     color 0.15s ease;
 }
 
-.tab:hover {
-  color: var(--text);
+@media (hover: hover) {
+  .tab:hover {
+    color: var(--text);
+  }
 }
 
 .tab[aria-selected='true'] {
@@ -1582,9 +1596,11 @@
     border-color 0.15s ease;
 }
 
-.quick button:hover:not(:disabled) {
-  color: var(--amber-hi);
-  border-color: var(--amber-line);
+@media (hover: hover) {
+  .quick button:hover:not(:disabled) {
+    color: var(--amber-hi);
+    border-color: var(--amber-line);
+  }
 }
 
 .quick button:disabled {

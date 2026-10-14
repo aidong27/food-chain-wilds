@@ -327,27 +327,28 @@
 
 .map-legend {
   position: absolute;
-  left: 12px;
-  bottom: 12px;
+  top: 12px;
+  right: 12px;
   z-index: 3;
   display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  max-width: calc(100% - 24px);
+  align-items: center;
+  gap: 12px;
+  height: 32px;
+  padding: 0 14px;
+  border-radius: 999px;
+  white-space: nowrap;
+  background: rgba(8, 14, 16, 0.72);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  border: 1px solid var(--line-2);
 }
 
 .map-legend > span {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  height: 26px;
-  padding: 0 10px;
-  border-radius: 999px;
+  gap: 5px;
   font-size: 12px;
   color: var(--text-2);
-  background: rgba(8, 14, 16, 0.72);
-  -webkit-backdrop-filter: blur(10px);
-  backdrop-filter: blur(10px);
 }
 
 .map-legend .line-key {
@@ -418,6 +419,12 @@
   left: 8px;
   padding: 4px 10px;
   font-size: 12px;
+}
+
+@container (max-width: 680px) {
+  .map-legend {
+    display: none;
+  }
 }
 
 @container (max-height: 380px) {

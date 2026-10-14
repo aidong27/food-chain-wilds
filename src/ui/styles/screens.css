@@ -154,8 +154,10 @@
   --zoom: 1.35;
 }
 
-.role:hover {
-  transform: translateY(-2px);
+@media (hover: hover) {
+  .role:hover {
+    transform: translateY(-2px);
+  }
 }
 
 .role.on {
@@ -328,14 +330,18 @@
   background: linear-gradient(180deg, transparent 48%, rgba(8, 14, 16, 0.94));
 }
 
-.species-card:hover {
-  transform: translateY(-4px);
-  border-color: var(--amber-line);
-  box-shadow: 0 18px 44px rgba(0, 0, 0, 0.45);
+@media (hover: hover) {
+  .species-card:hover {
+    transform: translateY(-4px);
+    border-color: var(--amber-line);
+    box-shadow: 0 18px 44px rgba(0, 0, 0, 0.45);
+  }
 }
 
-.species-card:hover .portrait {
-  transform: scale(1.04);
+@media (hover: hover) {
+  .species-card:hover .portrait {
+    transform: scale(1.04);
+  }
 }
 
 .species-info {
@@ -581,8 +587,10 @@
   transition: background-color 0.15s ease;
 }
 
-.invite-code:hover {
-  background: rgba(243, 182, 94, 0.2);
+@media (hover: hover) {
+  .invite-code:hover {
+    background: rgba(243, 182, 94, 0.2);
+  }
 }
 
 .invite-code > span {
@@ -1262,8 +1270,10 @@
     border-color 0.15s ease;
 }
 
-.guess-opt:hover {
-  border-color: var(--line-3);
+@media (hover: hover) {
+  .guess-opt:hover {
+    border-color: var(--line-3);
+  }
 }
 
 .guess-face {

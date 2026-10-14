@@ -242,11 +242,13 @@ img {
     0 10px 26px rgba(243, 165, 70, 0.26);
 }
 
-.btn.primary:hover:not(:disabled) {
-  background: linear-gradient(180deg, #ffd99c, #f4ae58);
-  box-shadow:
-    0 1px 0 rgba(255, 255, 255, 0.5) inset,
-    0 12px 32px rgba(243, 165, 70, 0.36);
+@media (hover: hover) {
+  .btn.primary:hover:not(:disabled) {
+    background: linear-gradient(180deg, #ffd99c, #f4ae58);
+    box-shadow:
+      0 1px 0 rgba(255, 255, 255, 0.5) inset,
+      0 12px 32px rgba(243, 165, 70, 0.36);
+  }
 }
 
 .btn.primary:disabled {
@@ -260,9 +262,11 @@ img {
   border: 1px solid var(--line-2);
 }
 
-.btn.ghost:hover:not(:disabled) {
-  background: var(--surface-3);
-  border-color: var(--line-3);
+@media (hover: hover) {
+  .btn.ghost:hover:not(:disabled) {
+    background: var(--surface-3);
+    border-color: var(--line-3);
+  }
 }
 
 .btn.quiet {
@@ -270,9 +274,11 @@ img {
   padding: 0 12px;
 }
 
-.btn.quiet:hover:not(:disabled) {
-  color: var(--text);
-  background: rgba(255, 255, 255, 0.05);
+@media (hover: hover) {
+  .btn.quiet:hover:not(:disabled) {
+    color: var(--text);
+    background: rgba(255, 255, 255, 0.05);
+  }
 }
 
 .btn.large {
@@ -298,9 +304,11 @@ img {
     color 0.18s ease;
 }
 
-.icon-btn:hover {
-  color: var(--text);
-  background: rgba(255, 255, 255, 0.06);
+@media (hover: hover) {
+  .icon-btn:hover {
+    color: var(--text);
+    background: rgba(255, 255, 255, 0.06);
+  }
 }
 
 .icon-btn[aria-pressed='true'] {
@@ -511,8 +519,10 @@ textarea:disabled {
     color 0.18s ease;
 }
 
-.segmented button:hover {
-  color: var(--text);
+@media (hover: hover) {
+  .segmented button:hover {
+    color: var(--text);
+  }
 }
 
 .segmented button.on {
