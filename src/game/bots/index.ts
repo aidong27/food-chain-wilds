@@ -2,18 +2,29 @@
  * Runs computer players. Each bot looks at its own GameView, decides, and acts
  * through the same rule functions people use.
  */
-import { RULES, isRegion } from '../data';
-import { chance, rand, shuffle } from '../rng';
+import { REGIONS, RULES, isRegion, type RegionId } from '../data';
+import { chance, pick, rand, shuffle } from '../rng';
 import { hide, move, postMessage, scream, useSkill } from '../rules';
-import type { BotMemory, Command, Game, Player } from '../types';
+import type { BotMemory, Command, Game, Player, RoundScript } from '../types';
 import { playerView } from '../view';
 import { chooseAction, chooseDrop, chooseFood, chooseGuesses, think, type Mind } from './brain';
 import { newMemory } from './knowledge';
 import { composeOpener, composePublic, composeReaction, composeReply } from './talk';
 
-export function initBotMemory(g: Game, _p: Player): BotMemory {
-  return newMemory(Math.floor(rand(g) * 4));
+export function initBotMemory(g: Game, p: Player): BotMemory {
+  const mem = newMemory(Math.floor(rand(g) * 4));
+  const persona = g.script?.personas?.[p.seat];
+  if (persona !== undefined) mem.persona = persona;
+  mem.cover = g.script?.covers?.[p.seat] ?? null;
+  return mem;
 }
+
+/** What the match script fixes for this round, if anything. */
+function scripted(g: Game): RoundScript | undefined {
+  return g.script?.rounds?.[g.round];
+}
+
+const bySeat = (g: Game, seat: number | undefined) => g.players.find(p => p.seat === seat);
 
 function memoryOf(g: Game, p: Player): BotMemory {
   return (g.bots[p.id] ||= newMemory(Math.floor(rand(g) * 4)));
@@ -41,6 +52,14 @@ function say(g: Game, bot: Player, target: string, text: string | null) {
 
 /** Start of the talk phase: a few bots speak up, some approach people privately. */
 export function botsChat(g: Game) {
+  const script = scripted(g)?.talk;
+  if (script) {
+    for (const line of script) {
+      const bot = bySeat(g, line.seat);
+      if (bot?.bot && bot.alive) say(g, bot, line.to ? bySeat(g, line.to)?.id || '' : 'all', line.text);
+    }
+    return;
+  }
   const lines: { bot: Player; text: string; urgent: boolean }[] = [];
   for (const bot of livingBots(g)) {
     const m = mindOf(g, bot);
@@ -59,10 +78,22 @@ export function botsChat(g: Game) {
   for (const line of [...urgent, ...rest]) say(g, line.bot, 'all', line.text);
 }
 
+/** Somewhere with food that is not `avoid`, or anywhere else if food is that scarce. */
+function awayFrom(g: Game, avoid: RegionId | null | undefined): RegionId {
+  const others = REGIONS.filter(r => r.id !== avoid);
+  const fed = others.filter(r => g.resources[r.id] > 0);
+  return pick(g, fed.length ? fed : others).id;
+}
+
 export function botsDrop(g: Game) {
+  const script = scripted(g)?.drop;
+  const human = g.players.find(p => !p.bot && p.alive);
   for (const bot of livingBots(g)) {
     if (bot.drop) continue;
-    bot.drop = chooseDrop(mindOf(g, bot));
+    const planned = script?.[bot.seat];
+    if (planned === 'human' && human?.drop) bot.drop = human.drop;
+    else if (planned === 'away') bot.drop = awayFrom(g, human?.drop);
+    else bot.drop = planned && planned !== 'human' ? planned : chooseDrop(mindOf(g, bot));
   }
 }
 
@@ -80,7 +111,9 @@ function perform(g: Game, bot: Player, cmd: Command) {
 }
 
 export function botsAct(g: Game) {
+  const idle = scripted(g)?.idle ?? [];
   for (const bot of livingBots(g)) {
+    if (idle.includes(bot.seat)) continue;
     for (let i = 0; i < RULES.actionsPerRound && bot.alive && bot.actions > 0; i++) {
       const cmd = chooseAction(mindOf(g, bot));
       if (!cmd) break;
@@ -94,9 +127,11 @@ export function botsAct(g: Game) {
 }
 
 export function botsEat(g: Game) {
+  const script = scripted(g)?.food;
   for (const bot of livingBots(g)) {
     if (bot.food) continue;
-    const { choice, target } = chooseFood(mindOf(g, bot));
+    const planned = script?.[bot.seat];
+    const { choice, target } = planned ? { choice: planned.choice, target: bySeat(g, planned.target)?.id } : chooseFood(mindOf(g, bot));
     bot.food = choice;
     bot.target = target || '';
   }

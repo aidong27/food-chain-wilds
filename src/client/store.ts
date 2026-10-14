@@ -18,6 +18,7 @@ import {
   type ServerStatus,
   type Session,
 } from './links';
+import { loadRecords, recordMatch, type MatchResult, type Records } from './records';
 import { play, setSound, soundEnabled } from './sound';
 import { KEYS, readText, writeText } from './storage';
 import { gameUrls } from './urls';
@@ -27,9 +28,20 @@ export const urls = gameUrls(location.origin, import.meta.env.BASE_URL, import.m
 
 export interface Banner {
   id: number;
+  /** A new night gets the full-screen title; other phases a small notice. */
+  kind: 'night' | 'phase';
   title: string;
   detail: string;
 }
+
+export interface TutorialProgress {
+  /** Index into the tutorial's steps. */
+  step: number;
+  /** The step on screen, for components that help with it. */
+  id: string | null;
+}
+
+export type TutorialStatus = 'offered' | 'skipped' | 'done' | null;
 
 export interface AppState {
   view: GameView | null;
@@ -50,6 +62,13 @@ export interface AppState {
   coach: boolean;
   /** Entries that arrived since the player last looked at the chat tab. */
   unreadChat: number;
+  /** The guided tutorial, while it runs. */
+  tutorial: TutorialProgress | null;
+  /** A brief full-screen cue when you are bitten or eat. */
+  flash: { id: number; kind: 'hurt' | 'fed' } | null;
+  records: Records;
+  /** How the match that just ended changed your records. */
+  result: MatchResult | null;
 }
 
 let state: AppState = {
@@ -67,6 +86,10 @@ let state: AppState = {
   hasSave: !!savedSolo(),
   coach: !readText('local', KEYS.welcomed),
   unreadChat: 0,
+  tutorial: null,
+  flash: null,
+  records: loadRecords(),
+  result: null,
 };
 
 const listeners = new Set<() => void>();
@@ -98,10 +121,17 @@ export function toast(text: string) {
 }
 
 let bannerTimer = 0;
-function showBanner(title: string, detail: string) {
+function showBanner(kind: Banner['kind'], title: string, detail: string) {
   clearTimeout(bannerTimer);
-  set({ banner: { id: Date.now(), title, detail } });
-  bannerTimer = window.setTimeout(() => set({ banner: null }), 1600);
+  set({ banner: { id: Date.now(), kind, title, detail } });
+  bannerTimer = window.setTimeout(() => set({ banner: null }), kind === 'night' ? 1700 : 1300);
+}
+
+let flashTimer = 0;
+function flash(kind: 'hurt' | 'fed') {
+  clearTimeout(flashTimer);
+  set({ flash: { id: Date.now(), kind } });
+  flashTimer = window.setTimeout(() => set({ flash: null }), 900);
 }
 
 export function toggleSound() {
@@ -126,11 +156,17 @@ function noticeChanges(before: GameView | null, after: GameView) {
     if (after.me) set({ selected: after.me.location });
     if (after.phase !== 'lobby' && after.phase !== 'finished') {
       const info = phaseInfo(after.phase as PhaseId);
-      showBanner(after.phase === 'talk' ? `第 ${after.round} 回合` : info.name, after.phase === 'talk' ? after.event : info.hint);
+      if (after.phase === 'talk') showBanner('night', `第 ${after.round} 回合`, after.event);
+      else showBanner('phase', info.name, info.hint);
     } else {
       clearTimeout(bannerTimer);
       set({ banner: null });
       if (after.phase === 'finished' && after.mode === 'solo' && state.coach) dismissCoach();
+    }
+    // Only a match seen ending here counts, so reloading the final screen records nothing twice.
+    if (before && before.phase !== 'finished' && after.phase === 'finished') {
+      const saved = recordMatch(after);
+      if (saved) set({ records: saved.records, result: saved.result });
     }
     if (before) play('phase');
   }
@@ -140,9 +176,13 @@ function noticeChanges(before: GameView | null, after: GameView) {
   for (const entry of fresh) {
     if (entry.tag === 'attacked') {
       play('hurt');
+      flash('hurt');
       toast(entry.text);
     } else if (entry.tag === 'death' && entry.actor === me) play('death');
-    else if (entry.tag === 'fed') play('good');
+    else if (entry.tag === 'fed') {
+      play('good');
+      flash('fed');
+    }
   }
   const chat = fresh.filter(l => (l.kind === 'public' || l.kind === 'private') && l.from !== me);
   if (chat.length) {
@@ -174,14 +214,25 @@ const events: LinkEvents = {
 function attach(next: Link) {
   link?.close();
   link = next;
-  set({ link: next.kind, playerId: next.playerId, view: null, connected: false, unreadChat: 0 });
+  const tutorial = next instanceof LocalLink && next.tutorial !== null ? { step: next.tutorial, id: null } : null;
+  set({ link: next.kind, playerId: next.playerId, view: null, connected: false, unreadChat: 0, tutorial, result: null });
 }
 
 function reset() {
   link?.close();
   link = null;
   voice.stop();
-  set({ view: null, link: null, playerId: '', connected: false, busy: false, hasSave: !!savedSolo(), unreadChat: 0 });
+  set({
+    view: null,
+    link: null,
+    playerId: '',
+    connected: false,
+    busy: false,
+    hasSave: !!savedSolo(),
+    unreadChat: 0,
+    tutorial: null,
+    result: null,
+  });
   history.replaceState(null, '', urls.home);
 }
 
@@ -312,6 +363,44 @@ export async function refreshServer() {
 export function dismissCoach() {
   writeText('local', KEYS.welcomed, '1');
   set({ coach: false });
+}
+
+// ---------------------------------------------------------------- tutorial
+
+export function tutorialStatus(): TutorialStatus {
+  const status = readText('local', KEYS.tutorial);
+  return status === 'offered' || status === 'skipped' || status === 'done' ? status : null;
+}
+
+/** Whether this browser has played before the tutorial existed. */
+export const playedBefore = () => !!(readText('local', KEYS.name) || readText('local', KEYS.welcomed));
+
+export function markTutorial(status: Exclude<TutorialStatus, null>) {
+  // Finishing it once is what matters; a later skip of a replay keeps that.
+  if (tutorialStatus() === 'done' && status !== 'done') return;
+  writeText('local', KEYS.tutorial, status);
+}
+
+export function startTutorial(name = savedName()) {
+  rememberName(name);
+  if (!tutorialStatus()) markTutorial('offered');
+  lastSolo = null;
+  attach(LocalLink.tutorial(name, events));
+  window.scrollTo({ top: 0 });
+}
+
+export function setTutorialStep(step: number, id: string | null) {
+  if (state.tutorial?.step === step && state.tutorial.id === id) return;
+  if (link instanceof LocalLink && link.tutorial !== step) link.setTutorial(step);
+  set({ tutorial: { step, id } });
+}
+
+/** Stops the guidance; the match itself goes on as ordinary practice. */
+export function endTutorial(done: boolean) {
+  markTutorial(done ? 'done' : 'skipped');
+  if (done && state.coach) dismissCoach();
+  if (link instanceof LocalLink) link.setTutorial(null);
+  set({ tutorial: null });
 }
 
 export const savedName = () => readText('local', KEYS.name) || '林间旅人';

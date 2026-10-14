@@ -317,7 +317,7 @@
 
 .me-portrait {
   position: relative;
-  height: clamp(118px, 17vh, 168px);
+  height: clamp(100px, 12.5vh, 160px);
 }
 
 .me-portrait .portrait {
@@ -593,9 +593,40 @@
   align-items: center;
   gap: 10px;
   width: 100%;
-  padding: 7px 8px;
+  padding: 6px 8px;
   border-radius: 12px;
   transition: background-color 0.15s ease;
+}
+
+/* Beside the map every resident fits without scrolling on an ordinary laptop screen. */
+.play-left .me-body {
+  gap: 8px;
+  padding: 6px 16px 14px;
+}
+
+.play-left .roster {
+  padding-top: 12px;
+}
+
+.play-left .roster .section-head {
+  padding-bottom: 6px;
+}
+
+.play-left .player-row {
+  padding: 4px 8px;
+}
+
+.play-left .player-row .face {
+  width: 34px;
+  height: 34px;
+}
+
+.play-left .pr-main b {
+  line-height: 1.3;
+}
+
+.play-left .pr-main small {
+  line-height: 1.45;
 }
 
 @media (hover: hover) {
@@ -1064,6 +1095,222 @@
   border-color: var(--amber);
 }
 
+/* clue board: who claims to be what */
+
+.clues {
+  display: grid;
+  gap: 10px;
+}
+
+.clues-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 8px;
+}
+
+.clues-head .icon {
+  align-self: center;
+  color: var(--amber);
+}
+
+.clues-head b {
+  font-size: 14.5px;
+}
+
+.clues-head small {
+  font-size: 12.5px;
+  color: var(--text-3);
+}
+
+.clue-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.clue {
+  position: relative;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 9px;
+  min-height: 56px;
+  padding: 7px 9px;
+  border-radius: 13px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--line);
+}
+
+.clue-face {
+  width: 38px;
+  height: 38px;
+  border-radius: 11px;
+  --zoom: 1.3;
+}
+
+.clue-body {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.clue-body b {
+  font-weight: 600;
+  font-size: 13.5px;
+  line-height: 1.2;
+}
+
+.clue-who {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  min-height: 20px;
+}
+
+.clue-who small {
+  font-size: 11.5px;
+  color: var(--text-4);
+}
+
+.seat.guessed {
+  color: var(--amber-hi);
+  background: rgba(8, 14, 16, 0.6);
+  box-shadow:
+    inset 0 0 0 1.5px var(--amber-line),
+    0 0 0 2px rgba(10, 18, 20, 0.85);
+}
+
+.clue-tag {
+  padding: 0 7px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 18px;
+  white-space: nowrap;
+}
+
+.clue-tag.self {
+  color: var(--amber-ink);
+  background: var(--amber);
+}
+
+.clue-tag.dead {
+  color: var(--text-3);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.clue.mine {
+  background: var(--amber-lo);
+  border-color: rgba(243, 182, 94, 0.28);
+}
+
+.clue.clash {
+  border-color: rgba(243, 182, 94, 0.6);
+}
+
+.clue.liar {
+  background: var(--red-lo);
+  border-color: rgba(244, 120, 98, 0.55);
+}
+
+.clue-flag {
+  position: absolute;
+  top: -8px;
+  right: 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 0 7px;
+  border-radius: 999px;
+  font-style: normal;
+  font-size: 10.5px;
+  font-weight: 700;
+  line-height: 17px;
+  color: var(--amber-ink);
+  background: var(--amber);
+}
+
+.clue.liar .clue-flag {
+  color: #2a0b05;
+  background: var(--red);
+}
+
+.clues-key {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text-3);
+}
+
+.clues-key .seat {
+  width: 18px;
+  height: 18px;
+  font-size: 10px;
+}
+
+.clues-key .seat + .seat,
+.clues-key .seat.guessed {
+  margin-left: 6px;
+}
+
+/* results of this round's actions */
+
+.round-log {
+  display: grid;
+  gap: 6px;
+}
+
+.round-log li {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
+  gap: 9px;
+  padding: 9px 12px;
+  border-radius: 12px;
+  font-size: 13.5px;
+  line-height: 1.55;
+  background: rgba(255, 255, 255, 0.035);
+  border: 1px solid var(--line);
+}
+
+.round-log li:first-child {
+  animation: rise 0.3s ease both;
+}
+
+.round-log li .icon {
+  margin-top: 2px;
+  color: var(--text-3);
+}
+
+.round-log li.clue {
+  background: var(--violet-lo);
+  border-color: rgba(189, 169, 247, 0.26);
+}
+
+.round-log li.clue .icon {
+  color: var(--violet);
+}
+
+.round-log li.bad {
+  background: var(--red-lo);
+  border-color: rgba(244, 120, 98, 0.26);
+}
+
+.round-log li.bad .icon {
+  color: var(--red);
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
 /* phase extras */
 
 .coach {
@@ -1105,14 +1352,14 @@
 .camp-intro {
   display: flex;
   align-items: flex-start;
-  gap: 12px;
-  font-size: 14px;
-  line-height: 1.65;
-  color: var(--text-2);
+  gap: 10px;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--text-3);
 }
 
 .camp-intro > .icon {
-  margin-top: 3px;
+  margin-top: 1px;
   color: var(--amber);
 }
 
@@ -1313,6 +1560,70 @@
 
 .nr-list li.bad .icon {
   color: var(--red);
+}
+
+.nr-wild {
+  display: grid;
+  gap: 6px;
+}
+
+.nr-wild h4 {
+  font-size: 12.5px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: var(--text-3);
+}
+
+.nr-wild ul {
+  display: grid;
+  gap: 6px;
+}
+
+.nr-wild li {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+  padding: 7px 12px 7px 8px;
+  border-radius: 12px;
+  font-size: 13.5px;
+  line-height: 1.5;
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.nr-wild li.bad {
+  background: var(--red-lo);
+}
+
+.nr-wild li.clue .icon {
+  color: var(--violet);
+}
+
+.nr-wild .face {
+  width: 30px;
+  height: 30px;
+}
+
+.nr-wild .face > b {
+  font-size: 13px;
+}
+
+.nr-next {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--text-2);
+  background: rgba(130, 212, 199, 0.07);
+  border: 1px solid rgba(130, 212, 199, 0.18);
+}
+
+.nr-next .icon {
+  margin-top: 2px;
+  color: var(--teal);
 }
 
 /* ------------------------------------------------------------------ feed */
@@ -1744,6 +2055,10 @@
 }
 
 @media (max-width: 559px) {
+  .clue-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .play-narrow .region-picker {
     grid-template-columns: repeat(3, minmax(0, 1fr));
     row-gap: 12px;

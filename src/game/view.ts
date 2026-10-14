@@ -3,7 +3,7 @@
  * the server for a player, and the only data a computer player may reason on.
  */
 import { REGIONS, RULES, region, type RegionId, type SpeciesId } from './data';
-import type { Body, Call, Difficulty, Entry, Game, Mode, Player, Stage } from './types';
+import type { Body, Call, Difficulty, Entry, Game, Mode, NightRecord, Player, Stage } from './types';
 
 export const PROTOCOL_VERSION = 2;
 
@@ -51,6 +51,8 @@ export interface GameView {
   callIndex: number;
   call: Call | null;
   event: string;
+  /** Every night as it really happened, revealed once the match is over. */
+  history: NightRecord[] | null;
 }
 
 const TRACE_STAGES: Stage[] = ['traces', 'call', 'food', 'settle', 'finished'];
@@ -107,5 +109,6 @@ export function playerView(g: Game, id: string, now = Date.now()): GameView {
     callIndex: g.callIndex,
     call: g.call ? { ...g.call } : null,
     event: g.event,
+    history: finished ? structuredClone(g.history ?? []) : null,
   };
 }

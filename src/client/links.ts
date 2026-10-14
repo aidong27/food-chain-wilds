@@ -5,6 +5,7 @@
  */
 import { advance, applyCommand, createGame, addPlayer, startGame, STATE_VERSION } from '../game/engine';
 import type { SpeciesId } from '../game/data';
+import { createTutorialGame } from '../game/tutorial';
 import type { Command, Difficulty, Game } from '../game/types';
 import { PROTOCOL_VERSION, playerView, type GameView } from '../game/view';
 import { KEYS, readJson, writeJson, writeText } from './storage';
@@ -35,6 +36,8 @@ interface SavedSolo {
   v: number;
   game: Game;
   playerId: string;
+  /** Step of the guided tutorial, while one runs in this match. */
+  tutorial?: number | null;
 }
 
 export interface SoloSettings {
@@ -59,6 +62,8 @@ export class LocalLink implements Link {
   private pending: number[] = [];
   private known: number;
   private timer = 0;
+  /** Step of the guided tutorial, or null for ordinary practice. */
+  tutorial: number | null = null;
 
   private constructor(
     game: Game,
@@ -80,8 +85,18 @@ export class LocalLink implements Link {
     game.difficulty = settings.difficulty;
     addPlayer(game, HUMAN, settings.name);
     startGame(game, settings.animal || undefined);
+    return LocalLink.open(game, events, null);
+  }
+
+  /** The guided first match; see game/tutorial.ts. */
+  static tutorial(name: string, events: LinkEvents): LocalLink {
+    return LocalLink.open(createTutorialGame(HUMAN, name), events, 0);
+  }
+
+  private static open(game: Game, events: LinkEvents, tutorial: number | null): LocalLink {
     const link = new LocalLink(game, HUMAN, events);
     link.known = 0;
+    link.tutorial = tutorial;
     link.queueChat();
     link.save();
     writeText('session', KEYS.soloActive, '1');
@@ -92,7 +107,14 @@ export class LocalLink implements Link {
     const saved = savedSolo();
     if (!saved) return null;
     writeText('session', KEYS.soloActive, '1');
-    return new LocalLink(saved.game, saved.playerId, events);
+    const link = new LocalLink(saved.game, saved.playerId, events);
+    link.tutorial = typeof saved.tutorial === 'number' ? saved.tutorial : null;
+    return link;
+  }
+
+  setTutorial(step: number | null) {
+    this.tutorial = step;
+    this.save();
   }
 
   get settings(): SoloSettings {
@@ -137,7 +159,12 @@ export class LocalLink implements Link {
   }
 
   private save() {
-    writeJson('local', KEYS.solo, { v: STATE_VERSION, game: this.game, playerId: this.playerId } satisfies SavedSolo);
+    writeJson('local', KEYS.solo, {
+      v: STATE_VERSION,
+      game: this.game,
+      playerId: this.playerId,
+      tutorial: this.tutorial,
+    } satisfies SavedSolo);
   }
 
   private queueChat() {

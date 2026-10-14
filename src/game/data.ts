@@ -201,7 +201,8 @@ export const SPECIES: readonly Species[] = [
     diet: 'plant',
     hp: 4,
     sp: 5,
-    hunger: 2,
+    // Everyone's prey, but it lives on scraps: the longest hunger cycle among grazers.
+    hunger: 3,
     damage: 0,
     prey: [],
     foods: ['forage'],

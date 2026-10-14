@@ -7,6 +7,7 @@ import { Finish } from './Finish';
 import { Home, Lobby } from './Home';
 import { Icon, phaseIcon } from './icons';
 import { Play } from './Play';
+import { Tutorial } from './Tutorial';
 
 function TopBar({ overHero }: { overHero: boolean }) {
   const { view, connected, sound, link } = useApp();
@@ -77,20 +78,33 @@ function Toast() {
   );
 }
 
+/** A new night takes the whole screen for a moment; later phases only announce themselves. */
 function Banner() {
   const { banner, view } = useApp();
   if (!banner) return null;
   const phase = view?.phase;
-  const icon = phase && phase !== 'lobby' && phase !== 'finished' ? (phase === 'talk' ? 'round' : phaseIcon(phase as PhaseId)) : null;
+  if (banner.kind === 'phase') {
+    return (
+      <div class="phase-pill" key={banner.id} aria-hidden="true">
+        {phase && phase !== 'lobby' && phase !== 'finished' && <Icon name={phaseIcon(phase as PhaseId)} size={18} />}
+        <strong>{banner.title}</strong>
+      </div>
+    );
+  }
   return (
     <div class="phase-banner" key={banner.id} aria-hidden="true">
       <div>
-        {icon && <Icon name={icon} size={30} />}
-        <strong>{phase === 'talk' && view ? `第${numeral(view.round)}夜` : banner.title}</strong>
+        <Icon name="round" size={30} />
+        <strong>{view ? `第${numeral(view.round)}夜` : banner.title}</strong>
         <span>{banner.detail}</span>
       </div>
     </div>
   );
+}
+
+function Flash() {
+  const { flash } = useApp();
+  return flash ? <div class={`screen-flash ${flash.kind}`} key={flash.id} aria-hidden="true" /> : null;
 }
 
 function Connecting() {
@@ -130,6 +144,8 @@ export function App() {
       {screen === 'lobby' && <Lobby />}
       {screen === 'play' && <Play />}
       {screen === 'finished' && <Finish />}
+      {screen === 'play' && <Tutorial />}
+      <Flash />
       <Toast />
       <Banner />
       <DialogHost />

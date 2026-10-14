@@ -55,4 +55,8 @@ export const KEYS = {
   /** Marks that this tab was in a solo match, so a reload resumes it directly. */
   soloActive: 'foodchain-solo-active',
   welcomed: 'foodchain-welcomed',
+  /** 'offered', 'skipped' or 'done': whether the guided tutorial was offered or finished. */
+  tutorial: 'foodchain-tutorial',
+  /** Lifetime results kept on this device. */
+  records: 'foodchain-records',
 } as const;

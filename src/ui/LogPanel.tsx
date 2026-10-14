@@ -69,6 +69,17 @@ export function ChatPanel({ view, active }: { view: GameView; active: boolean })
     if (recipient !== 'all' && !living.some(q => q.id === recipient)) setRecipient('all');
   }, [living.length]);
 
+  // Drafts handed over from elsewhere, e.g. the tutorial; nothing is sent until you press send.
+  useEffect(() => {
+    const fill = (e: Event) => {
+      const { to, text: draft } = (e as CustomEvent<{ to: string; text: string }>).detail;
+      setRecipient(to);
+      setDraft(draft);
+    };
+    window.addEventListener('compose', fill);
+    return () => window.removeEventListener('compose', fill);
+  }, []);
+
   const submit = () => {
     const message = draft.trim();
     if (!message) return;
@@ -86,7 +97,7 @@ export function ChatPanel({ view, active }: { view: GameView; active: boolean })
   const length = [...draft.trim()].length;
 
   return (
-    <div class="tab-body chat-body" hidden={!active} role="tabpanel" aria-label="消息往来">
+    <div class="tab-body chat-body" hidden={!active} role="tabpanel" aria-label="消息往来" data-tut="chat">
       <div class="feed" ref={feed.ref} onScroll={feed.onScroll} role="log" aria-live="polite">
         {entries.length ? (
           byRound(entries).map(group => (
@@ -110,6 +121,7 @@ export function ChatPanel({ view, active }: { view: GameView; active: boolean })
       </div>
       <form
         class="composer"
+        data-tut="composer"
         onSubmit={e => {
           e.preventDefault();
           submit();

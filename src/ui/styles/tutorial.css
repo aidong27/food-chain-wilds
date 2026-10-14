@@ -1,0 +1,324 @@
+/* The guided first match: the island dims, the one thing to look at or press
+   stays lit with a firelight ring, and a note explains it beside the target. */
+
+.tut-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  pointer-events: none;
+}
+
+.tut-layer.is-hidden {
+  visibility: hidden;
+}
+
+.tut-dim {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.tut-shade {
+  fill: rgba(3, 8, 9, 0.68);
+}
+
+.tut-ring {
+  position: fixed;
+  border-radius: 14px;
+  box-shadow:
+    0 0 0 2px var(--amber),
+    0 0 0 7px rgba(243, 182, 94, 0.2),
+    0 0 34px rgba(243, 182, 94, 0.35);
+  animation: tut-ring 1.8s ease-in-out infinite;
+}
+
+@keyframes tut-ring {
+  50% {
+    box-shadow:
+      0 0 0 2px var(--amber-hi),
+      0 0 0 10px rgba(243, 182, 94, 0.1),
+      0 0 46px rgba(243, 182, 94, 0.45);
+  }
+}
+
+.tut-bubble {
+  position: fixed;
+  display: grid;
+  gap: 8px;
+  width: min(372px, calc(100vw - 24px));
+  padding: 16px 18px 14px;
+  border-radius: 18px;
+  pointer-events: auto;
+  color: var(--text);
+  background: linear-gradient(180deg, rgba(243, 182, 94, 0.1), transparent 70px), #101b1e;
+  border: 1px solid var(--amber-line);
+  box-shadow:
+    0 24px 60px rgba(0, 0, 0, 0.6),
+    0 0 0 1px rgba(0, 0, 0, 0.4);
+  animation: tut-in 0.28s ease both;
+}
+
+.tut-bubble.finale {
+  width: min(440px, calc(100vw - 24px));
+  padding: 22px 22px 18px;
+  text-align: center;
+}
+
+.tut-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: var(--amber);
+}
+
+.tut-meta span {
+  margin-left: auto;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-3);
+}
+
+.tut-bubble.finale .tut-meta {
+  justify-content: center;
+}
+
+.tut-bubble.finale .tut-meta span {
+  display: none;
+}
+
+.tut-bubble h3 {
+  font-family: var(--brush);
+  font-weight: 400;
+  font-size: 25px;
+  line-height: 1.2;
+  letter-spacing: 0.05em;
+  color: var(--amber-hi);
+}
+
+.tut-bubble.finale h3 {
+  font-size: 34px;
+}
+
+.tut-bubble p {
+  font-size: 14.5px;
+  line-height: 1.7;
+  color: var(--text-2);
+}
+
+.tut-bubble p b {
+  font-weight: 700;
+  color: var(--text);
+}
+
+.tut-bubble p b.hp {
+  color: #ff9a84;
+}
+
+.tut-bubble p b.sp {
+  color: var(--teal);
+}
+
+.tut-bubble .tut-do {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  line-height: 1.4;
+  color: var(--amber);
+}
+
+.tut-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.tut-actions .btn {
+  min-height: 40px;
+}
+
+.tut-skip {
+  color: var(--text-3);
+  text-decoration-color: rgba(205, 228, 220, 0.25);
+}
+
+.tut-bubble.finale .tut-actions {
+  flex-direction: column;
+  align-items: stretch;
+  margin-top: 8px;
+}
+
+.tut-bubble.finale .tut-actions .btn {
+  min-height: 46px;
+}
+
+.tut-bubble.nudged[data-nudge='0'] {
+  animation: tut-nudge-a 0.42s ease;
+}
+
+.tut-bubble.nudged[data-nudge='1'] {
+  animation: tut-nudge-b 0.42s ease;
+}
+
+@keyframes tut-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+}
+
+@keyframes tut-nudge-a {
+  20%,
+  60% {
+    transform: translateX(-6px);
+  }
+  40%,
+  80% {
+    transform: translateX(6px);
+  }
+}
+
+@keyframes tut-nudge-b {
+  20%,
+  60% {
+    transform: translateX(-6px);
+  }
+  40%,
+  80% {
+    transform: translateX(6px);
+  }
+}
+
+/* help inside dialogs and panels */
+
+.tutorial-callout {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 18px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, rgba(130, 212, 199, 0.16), rgba(130, 212, 199, 0.04));
+  border: 1px solid rgba(130, 212, 199, 0.32);
+}
+
+.tutorial-callout > .icon {
+  color: var(--teal);
+}
+
+.tutorial-callout p,
+.tutorial-callout span {
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.tutorial-callout b {
+  color: var(--teal);
+}
+
+.tutorial-callout.compact {
+  grid-template-columns: auto minmax(0, 1fr);
+  margin: 0 0 4px;
+  padding: 10px 12px;
+}
+
+.guess-opt.tut-pick {
+  position: relative;
+  box-shadow:
+    0 0 0 2px var(--amber),
+    0 0 18px rgba(243, 182, 94, 0.4);
+  animation: tut-ring 1.8s ease-in-out infinite;
+}
+
+.guess-opt.tut-pick::after {
+  content: '点这里';
+  position: absolute;
+  top: -9px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 0 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 18px;
+  white-space: nowrap;
+  color: var(--amber-ink);
+  background: var(--amber);
+}
+
+.coach.guide {
+  grid-template-columns: auto minmax(0, 1fr);
+  padding-right: 14px;
+  background: linear-gradient(135deg, rgba(130, 212, 199, 0.15), rgba(130, 212, 199, 0.04));
+  border-color: rgba(130, 212, 199, 0.32);
+}
+
+.coach.guide > .icon,
+.coach.guide p b {
+  color: var(--teal);
+}
+
+/* Landscape phones: a smaller note leaves room for the thing it points at. */
+@media (max-height: 560px) {
+  .tut-bubble {
+    gap: 4px;
+    padding: 10px 14px 10px;
+  }
+
+  .tut-bubble h3 {
+    font-size: 20px;
+  }
+
+  .tut-bubble p {
+    font-size: 13px;
+    line-height: 1.55;
+  }
+
+  .tut-bubble .tut-do {
+    display: none;
+  }
+
+  .tut-actions .btn {
+    min-height: 34px;
+  }
+
+  .tut-bubble.finale {
+    padding: 14px 16px;
+  }
+
+  .tut-bubble.finale h3 {
+    font-size: 26px;
+  }
+
+  .tut-bubble.finale .tut-actions {
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+
+  .tut-bubble.finale .tut-actions .btn {
+    flex: 1 1 auto;
+    min-height: 38px;
+  }
+}
+
+@media (max-width: 759px) and (min-height: 561px) {
+  .tut-bubble {
+    padding: 14px 16px 12px;
+  }
+
+  .tut-bubble h3 {
+    font-size: 23px;
+  }
+
+  .tut-bubble p {
+    font-size: 14px;
+  }
+}
