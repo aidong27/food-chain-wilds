@@ -33,7 +33,17 @@
 - 本地 Worker 执行 `GAME_ORIGIN=https://aidong27.github.io npm run test:network`：15 项通过。
 - 网络验证覆盖三客户端联机、房主权限/转移、身份与私信隔离、语音信令权限、秘密投放、移动判定、通话额度、食物结算、断线恢复、无效席位凭证、跨域拒绝和完整七回合。
 - Pages HTML/CSS 所引用的脚本、样式、图标与两张插画均在构建产物中存在。
-- Gitleaks 8.30.1 扫描 Pages 构建产物：无泄漏。公开前还会扫描新 Git 历史。
+- Gitleaks 8.30.1 扫描 Pages 构建产物与待发布的干净 Git 历史：无泄漏。
+
+## 线上发布结果
+
+- [公开仓库](https://github.com/aidong27/food-chain-wilds)已创建，默认分支为 `main`，没有附加许可证。
+- [GitHub Pages](https://aidong27.github.io/food-chain-wilds/)已启用 HTTPS，首次[构建与部署工作流](https://github.com/aidong27/food-chain-wilds/actions/runs/38494492652)成功。
+- Cloudflare 兼容层部署版本：`f3c44479-9961-4261-8112-5197c996187b`。本次使用恢复的原版静态产物，上传结果为“没有更新的静态文件”；原站继续提供原前端。
+- 线上后端执行 `GAME_BASE_URL=https://food-chain-wilds.food-chain-game.workers.dev GAME_ORIGIN=https://aidong27.github.io npm run test:network`，15 项全部通过，含三个独立 WebSocket 客户端连接和完整七回合结算。测试创建了独立房间，没有进入用户原邀请房间或重置已有存档。
+- 匿名访问 Pages HTML、脚本、样式、图标与两张插画均返回 200，内容与本地构建逐字节一致；带 `room` 查询参数的邀请链接返回同一应用。原站的对应六个文件与发布前逐字节一致。
+- 精确允许的新增 Origin 为 `https://aidong27.github.io`；预检允许 GET/POST，允许请求头仅 Content-Type，没有 `Access-Control-Allow-Credentials`，没有新增账号权限或持久凭据。WebSocket 升级仍受相同 Origin 白名单与原有席位令牌验证约束；不受信任来源实际返回 403。
+- 浏览器操作未完成：Mac 处于锁定状态，可用的 Chrome 浏览器连接为空，尝试打开 Safari 返回无法解锁。页面与资源通过匿名 HTTP 请求验证，未把这些检查称为浏览器渲染、真实麦克风或实体设备实测。
 
 ## 持续限制
 
