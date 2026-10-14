@@ -1,9 +1,22 @@
 import { useState } from 'preact/hooks';
-import { REGIONS, RULES, isAdjacent, phaseInfo, region, species, type FoodChoice, type PhaseId, type SpeciesId } from '../game/data';
+import {
+  REGIONS,
+  RULES,
+  isAdjacent,
+  phaseInfo,
+  region,
+  roundEvent,
+  species,
+  type FoodChoice,
+  type PhaseId,
+  type SpeciesId,
+} from '../game/data';
 import { visibleRegions, type GameView, type ViewEntry } from '../game/view';
 import { answerCall, dismissCoach, joinVoice, send, skipToEnd, useApp } from '../client/store';
-import { Chip, PlayerFace, entryTone, numeral, playerById, seatName, type Layout } from './common';
+import { ClueBoard } from './Clues';
+import { Chip, PlayerFace, entryTone, focusTab, numeral, playerById, seatName, type Layout } from './common';
 import { Icon, entryIcon, foodIcon, phaseIcon, regionIcon, type IconName } from './icons';
+import { useTutorialHint } from './Tutorial';
 import { pickRegion } from './WildsMap';
 
 function readyLabel(view: GameView, short = false): string {
@@ -44,6 +57,7 @@ export function PrimaryButton({ view, short }: { view: GameView; short?: boolean
   return (
     <button
       class={`btn primary ${short ? '' : 'large'} ready-btn`}
+      data-tut="ready"
       disabled={readyBlocked(view, connected)}
       onClick={() => send({ type: 'ready' })}
     >
@@ -77,6 +91,7 @@ function Tile({
     <button
       class={`tile ${chosen ? 'chosen' : ''}`}
       data-action={action}
+      data-tut={action}
       disabled={disabled}
       aria-pressed={chosen === undefined ? undefined : chosen}
       onClick={onClick}
@@ -94,7 +109,12 @@ function RegionPicker({ view, mode }: { view: GameView; mode: 'drop' | 'target' 
   const p = view.me!;
   const dropping = mode === 'drop';
   return (
-    <div class="region-picker" role={dropping ? 'radiogroup' : 'group'} aria-label={dropping ? '选择投放地区' : '选择目标地区'}>
+    <div
+      class="region-picker"
+      data-tut="regions"
+      role={dropping ? 'radiogroup' : 'group'}
+      aria-label={dropping ? '选择投放地区' : '选择目标地区'}
+    >
       {REGIONS.map(r => {
         const food = view.resources[r.id];
         const on = dropping ? p.drop === r.id : selected === r.id;
@@ -128,40 +148,35 @@ function sameDrop(view: GameView) {
   return view.players.filter(p => p.alive && p.id !== me.id && p.drop && p.drop === me.drop);
 }
 
-function openChat() {
-  window.dispatchEvent(new CustomEvent('focus-chat'));
+function VoiceCard({ view }: { view: GameView }) {
+  const p = view.me!;
+  const { connected } = useApp();
+  const count = view.players.filter(q => q.voice).length;
+  return (
+    <div class="voice-card">
+      <span class="voice-orb">
+        <Icon name="voice" size={20} />
+      </span>
+      <div>
+        <strong>公共语音营地</strong>
+        <small>{count} 人参与 · 不录音、不转写</small>
+      </div>
+      <button class={`btn ${p.voice ? 'ghost' : 'primary'}`} disabled={!connected} onClick={() => void joinVoice(!p.voice)}>
+        {p.voice ? '离开语音' : '加入语音'}
+      </button>
+    </div>
+  );
 }
 
 function TalkControls({ view, layout }: { view: GameView; layout: Layout }) {
   const p = view.me!;
-  const { connected, unreadChat } = useApp();
-  if (view.mode === 'online') {
-    const count = view.players.filter(q => q.voice).length;
-    return (
-      <div class="voice-card">
-        <span class="voice-orb">
-          <Icon name="voice" size={20} />
-        </span>
-        <div>
-          <strong>公共语音营地</strong>
-          <small>{count} 人参与 · 不录音、不转写</small>
-        </div>
-        <button class={`btn ${p.voice ? 'ghost' : 'primary'}`} disabled={!connected} onClick={() => void joinVoice(!p.voice)}>
-          {p.voice ? '离开语音' : '加入语音'}
-        </button>
-      </div>
-    );
-  }
+  const { unreadChat } = useApp();
   // The wide layout already shows the whole conversation beside the map.
   const latest = layout === 'wide' ? [] : view.log.filter(l => l.kind === 'public' && l.round === view.round && l.from !== p.id).slice(-3);
   return (
     <div class="camp">
-      <p class="camp-intro">
-        <Icon name="camp" size={20} />
-        <span>
-          营地里的居民会公开发言，也可能私信你。<b>捕食者常冒充草食动物</b>；被咬的动物会当众指认凶手，死者的身份会揭穿冒名者。
-        </span>
-      </p>
+      {view.mode === 'online' && <VoiceCard view={view} />}
+      <ClueBoard view={view} />
       {latest.length > 0 && (
         <ul class="quotes" aria-label="最新发言">
           {latest.map(l => {
@@ -181,13 +196,21 @@ function TalkControls({ view, layout }: { view: GameView; layout: Layout }) {
           })}
         </ul>
       )}
-      <div class="ap-row">
-        <button class="btn ghost" onClick={openChat}>
-          <Icon name="public" size={16} />
-          查看全部消息
-          {unreadChat > 0 && <span class="badge">{unreadChat}</span>}
-        </button>
-      </div>
+      <p class="camp-intro">
+        <Icon name="camp" size={18} />
+        <span>
+          <b>捕食者常冒充草食动物。</b>被咬的居民会当众指认凶手，死者的身份会揭穿冒名者。
+        </span>
+      </p>
+      {layout !== 'wide' && (
+        <div class="ap-row">
+          <button class="btn ghost" onClick={() => focusTab('chat')}>
+            <Icon name="public" size={16} />
+            查看全部消息
+            {unreadChat > 0 && <span class="badge">{unreadChat}</span>}
+          </button>
+        </div>
+      )}
     </div>
   );
 }
@@ -210,6 +233,24 @@ function DropControls({ view }: { view: GameView }) {
         )}
       </p>
     </>
+  );
+}
+
+const ACTION_TAGS = new Set(['move', 'hide', 'skill', 'scream', 'overdraw']);
+
+/** What your actions turned up this round, newest first, right where you took them. */
+function RoundLog({ view }: { view: GameView }) {
+  const entries = view.log.filter(l => l.round === view.round && l.tag && ACTION_TAGS.has(l.tag)).slice(-3);
+  if (!entries.length) return null;
+  return (
+    <ul class="round-log" data-tut="feed" aria-label="本回合的行动结果" aria-live="polite">
+      {entries.reverse().map(l => (
+        <li key={l.id} class={entryTone(l)}>
+          <Icon name={entryIcon(l)} size={15} />
+          <span>{l.text}</span>
+        </li>
+      ))}
+    </ul>
   );
 }
 
@@ -284,6 +325,7 @@ function ActionControls({ view }: { view: GameView }) {
           onClick={() => send({ type: 'scream' })}
         />
       </div>
+      <RoundLog view={view} />
       <p class="ap-note">
         {neighbours.length ? (
           <>
@@ -479,7 +521,7 @@ function FoodControls({ view }: { view: GameView }) {
           {traces.length ? `足迹：${traces.map(id => `${playerById(view, id)?.seat}号`).join('、')}` : '没有他人足迹'}
         </Chip>
       </div>
-      <div class={`tile-grid ${choices.length === 3 ? 'three' : 'two'}`}>
+      <div class={`tile-grid ${choices.length === 3 ? 'three' : 'two'}`} data-tut="food">
         {choices.map(c => {
           const [text, tone] = note(c);
           return (
@@ -503,11 +545,20 @@ function FoodControls({ view }: { view: GameView }) {
   );
 }
 
-const REPORT_TAGS = new Set(['hit', 'attacked', 'miss', 'fed', 'starved', 'hunger', 'overdraw', 'death']);
+const REPORT_TAGS = new Set(['hit', 'attacked', 'miss', 'fed', 'starved', 'hunger', 'overdraw']);
+
+function hungerForecast(view: GameView): string {
+  const p = view.me!;
+  const left = species(p.animal).hunger - p.hunger - 1;
+  return left <= 0 ? '明夜再吃不到东西，就会失去 1 点生命。' : `还能再空腹 ${left} 夜。`;
+}
 
 export function NightReport({ view }: { view: GameView }) {
   const p = view.me!;
-  const entries: ViewEntry[] = view.log.filter(l => l.round === view.round && l.tag && REPORT_TAGS.has(l.tag));
+  const tonight = view.log.filter(l => l.round === view.round);
+  const entries: ViewEntry[] = tonight.filter(l => (l.tag && REPORT_TAGS.has(l.tag)) || (l.tag === 'death' && l.actor === p.id));
+  // What the rest of the island gave away tonight: who fell, and who you saw eating nearby.
+  const wild = tonight.filter(l => (l.tag === 'death' || l.tag === 'food-attempt') && l.actor && l.actor !== p.id);
   const diedTonight = !p.alive && p.diedRound === view.round;
   const mood = !p.alive ? 'grim' : p.fed ? '' : 'hungry';
   const title = p.alive
@@ -518,7 +569,7 @@ export function NightReport({ view }: { view: GameView }) {
       ? '你在今夜倒下了'
       : '你正在观战';
   return (
-    <div class={`night-report ${mood}`}>
+    <div class={`night-report ${mood}`} data-tut="report">
       <div class="nr-head">
         <span class="nr-icon">
           <Icon name={!p.alive ? 'death' : p.fed ? 'fed' : 'hunger'} size={24} />
@@ -544,12 +595,36 @@ export function NightReport({ view }: { view: GameView }) {
       ) : (
         <p class="ap-note">这一夜风平浪静。</p>
       )}
+      {wild.length > 0 && (
+        <section class="nr-wild" aria-label="今夜荒野">
+          <h4>今夜荒野</h4>
+          <ul>
+            {wild.map(l => {
+              const who = playerById(view, l.actor);
+              return (
+                <li key={l.id} class={l.tag === 'death' ? 'bad' : 'clue'}>
+                  {who ? <PlayerFace view={view} player={who} /> : <Icon name={entryIcon(l)} size={16} />}
+                  <span>{l.text}</span>
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      )}
+      {p.alive && view.round < RULES.rounds && (
+        <p class="nr-next">
+          <Icon name="round" size={15} />
+          <span>
+            第{numeral(view.round + 1)}夜：{roundEvent(view.round + 1)}。{p.fed ? '' : hungerForecast(view)}
+          </span>
+        </p>
+      )}
     </div>
   );
 }
 
 const TIPS: Partial<Record<PhaseId, string>> = {
-  talk: '先读一读营地里的发言——有人在撒谎。可以私信电脑居民提问；点开「荒野居民」里的任何人，记下你对 Ta 身份的推理。',
+  talk: '营地里有人在撒谎：线索板会标出撞了身份的居民。可以私信电脑居民提问，也可以点开任何居民，记下你对 Ta 身份的推理。',
   drop: '点一个有食物的地区作为本回合起点（地图或地区按钮都可以），再锁定投放。所有人锁定后，投放会公开。',
   action: '地图上的数字是其他居民的投放席位。和可疑的居民挤在一起？选一个「可前往」的相邻地区移动，或使用技能。',
   food: '草食动物在有食物的地区采食；捕食者只能吃同一地区、食谱里的动物。选好后锁定。',
@@ -557,9 +632,19 @@ const TIPS: Partial<Record<PhaseId, string>> = {
 };
 
 function CoachTip({ view }: { view: GameView }) {
-  const { coach } = useApp();
+  const { coach, tutorial } = useApp();
+  const guide = useTutorialHint();
+  if (guide)
+    return (
+      <div class="coach guide" role="note">
+        <Icon name="tutorial" size={18} />
+        <p>
+          <b>{guide.title}</b> · {guide.text}
+        </p>
+      </div>
+    );
   const tip = TIPS[view.phase as PhaseId];
-  if (!coach || view.mode !== 'solo' || view.round > 2 || !tip || !view.me?.alive) return null;
+  if (tutorial || !coach || view.mode !== 'solo' || view.round > 2 || !tip || !view.me?.alive) return null;
   return (
     <div class="coach" role="note">
       <Icon name="tip" size={18} />

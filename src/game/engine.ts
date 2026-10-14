@@ -11,6 +11,7 @@ import {
   SPECIES,
   foodRegions,
   isAdjacent,
+  isSpecies,
   phaseInfo,
   phasesFor,
   roundEvent,
@@ -22,7 +23,7 @@ import {
 import { botsAct, botsChat, botsDrop, botsEat, botsGuess, botsHearPublic, botReply, initBotMemory } from './bots';
 import { pick, randomSeed, shuffle } from './rng';
 import { allowedFoods, fail, findPlayer, hide, leaveTrace, log, move, postMessage, resolveFood, scream, useSkill } from './rules';
-import type { Command, Game, Mode, Player } from './types';
+import type { Command, Game, Mode, NightRecord, Player } from './types';
 
 /** Stored games with another version are discarded instead of misread. */
 export const STATE_VERSION = 2;
@@ -126,9 +127,14 @@ export function fillWithBots(g: Game) {
   }
 }
 
-export function startGame(g: Game, preferred?: SpeciesId, now = Date.now()) {
-  if (g.phase !== 'lobby') fail('游戏已经开始。');
-  fillWithBots(g);
+/** A scripted cast is used only if it gives every seat a different animal. */
+function scriptedRoles(g: Game): SpeciesId[] | null {
+  const roles = g.script?.roles;
+  if (!roles || roles.length !== g.players.length || new Set(roles).size !== roles.length) return null;
+  return roles.every(isSpecies) ? [...roles] : null;
+}
+
+function randomRoles(g: Game, preferred?: SpeciesId): SpeciesId[] {
   const roles = shuffle(
     g,
     SPECIES.map(s => s.id),
@@ -138,6 +144,13 @@ export function startGame(g: Game, preferred?: SpeciesId, now = Date.now()) {
     const i = roles.indexOf(preferred);
     [roles[0], roles[i]] = [roles[i], roles[0]];
   }
+  return roles;
+}
+
+export function startGame(g: Game, preferred?: SpeciesId, now = Date.now()) {
+  if (g.phase !== 'lobby') fail('游戏已经开始。');
+  fillWithBots(g);
+  const roles = scriptedRoles(g) ?? randomRoles(g, preferred);
   g.players.forEach((p, i) => {
     p.animal = roles[i];
     p.hp = species(p.animal).hp;
@@ -224,6 +237,7 @@ export function advance(g: Game, now = Date.now()) {
     case 'food':
       botsEat(g);
       resolveFood(g);
+      recordNight(g);
       enterPhase(g, 'settle', now);
       break;
     case 'settle':
@@ -234,6 +248,20 @@ export function advance(g: Game, now = Date.now()) {
       }
       break;
   }
+}
+
+/** Keeps the night's positions, meals and hunts for the reveal at the end. */
+function recordNight(g: Game) {
+  const night: NightRecord = {
+    round: g.round,
+    players: g.players
+      .filter(p => p.alive || p.diedRound === g.round)
+      .map(p => ({ id: p.id, drop: p.drop, location: p.location, food: p.food, fed: p.fed, hp: p.hp, alive: p.alive })),
+    hunts: g.log
+      .filter(l => l.round === g.round && l.tag === 'hit' && Array.isArray(l.scope) && l.target)
+      .map(l => ({ hunter: (l.scope as string[])[0], prey: l.target!, damage: l.amount ?? 0 })),
+  };
+  (g.history ||= []).push(night);
 }
 
 function enterOrSkip(g: Game, phase: PhaseId, now: number) {

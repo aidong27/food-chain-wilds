@@ -4,6 +4,7 @@
  */
 import {
   ArrowRight,
+  Award,
   Ban,
   BatteryWarning,
   Bone,
@@ -24,8 +25,10 @@ import {
   FastForward,
   Flame,
   Footprints,
+  GraduationCap,
   Heart,
   HeartCrack,
+  History,
   Hourglass,
   House,
   Leaf,
@@ -40,6 +43,7 @@ import {
   Moon,
   MoonStar,
   Mountain,
+  MousePointerClick,
   PawPrint,
   Phone,
   RotateCcw,
@@ -54,8 +58,10 @@ import {
   Stone,
   Sunrise,
   Swords,
+  Telescope,
   Timer,
   Trees,
+  TriangleAlert,
   Trophy,
   Users,
   Utensils,
@@ -148,6 +154,12 @@ const ICONS = {
   trophy: Trophy,
   eye: Eye,
   unknown: CircleQuestionMark,
+  tutorial: GraduationCap,
+  tap: MousePointerClick,
+  replay: History,
+  clues: Telescope,
+  warning: TriangleAlert,
+  award: Award,
 } satisfies Record<string, LucideIcon>;
 
 export type IconName = keyof typeof ICONS;

@@ -2,7 +2,8 @@ import type { ComponentChildren, JSX } from 'preact';
 import { Fragment } from 'preact';
 import { useEffect, useReducer, useRef } from 'preact/hooks';
 import { RULES, SPECIES, predatorsOf, region, species, type Diet, type SpeciesId } from '../game/data';
-import { getState, leave, send, toggleSound, useApp } from '../client/store';
+import { TUTORIAL_SEATS } from '../game/tutorial';
+import { getState, leave, markTutorial, send, startTutorial, toggleSound, useApp } from '../client/store';
 import { Portrait, RoundDivider, byRound, claimsFrom, copyInvite, dietText, entryTone, numeral, playerById, seatName } from './common';
 import { Icon, entryIcon, type IconName } from './icons';
 
@@ -89,8 +90,26 @@ export function showRules() {
 }
 
 function RulesBody() {
+  const { link } = useApp();
   return (
     <>
+      {!link && (
+        <div class="tutorial-callout">
+          <Icon name="tutorial" size={20} />
+          <p>
+            <b>不想读规则？</b>跟着新手教程玩两夜，3 分钟就能上手。
+          </p>
+          <button
+            class="btn primary"
+            onClick={() => {
+              closeDialog();
+              startTutorial();
+            }}
+          >
+            开始教程
+          </button>
+        </div>
+      )}
       <div class="quickstart">
         <h3 class="brush">六十秒上手</h3>
         <ol>
@@ -227,10 +246,11 @@ export function showPlayer(id: string) {
 }
 
 function PlayerBody({ id }: { id: string }) {
-  const { view } = useApp();
+  const { view, tutorial } = useApp();
   if (!view) return <p>对局已结束。</p>;
   const p = playerById(view, id)!;
   const me = view.me!;
+  const coached = tutorial?.id === 'mark' && p.seat === TUTORIAL_SEATS.wolf;
   const claim = claimsFrom(view).get(id);
   const related = view.log.filter(l => [l.actor, l.target, l.from].includes(id) && l.kind !== 'public' && l.kind !== 'private').slice(-6);
   const canGuess = p.id !== me.id && p.alive && me.alive;
@@ -261,6 +281,14 @@ function PlayerBody({ id }: { id: string }) {
       </div>
       {canGuess && (
         <div class="field">
+          {coached && (
+            <p class="tutorial-callout compact">
+              <Icon name="tutorial" size={17} />
+              <span>
+                <b>新手教程</b> · 选择「灰狼」：4 号的指认说明了一切。
+              </span>
+            </p>
+          )}
           <span id="guess-label">我的身份推理 · 仅你可见</span>
           <div class="guess-picker" role="radiogroup" aria-labelledby="guess-label">
             <button role="radio" aria-checked={!guess} class={`guess-opt ${!guess ? 'on' : ''}`} onClick={() => setGuess('')}>
@@ -274,7 +302,7 @@ function PlayerBody({ id }: { id: string }) {
                 key={s.id}
                 role="radio"
                 aria-checked={guess === s.id}
-                class={`guess-opt ${guess === s.id ? 'on' : ''}`}
+                class={`guess-opt ${guess === s.id ? 'on' : ''} ${coached && s.id === 'wolf' && guess !== s.id ? 'tut-pick' : ''}`}
                 onClick={() => setGuess(s.id)}
               >
                 <Portrait animal={s.id} face class="guess-face" />
@@ -302,6 +330,72 @@ function PlayerBody({ id }: { id: string }) {
           </ul>
         </div>
       )}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------- welcome
+
+/** Offered once, on the first visit: a guided first match or straight into the game. */
+export function showWelcome(returning: boolean) {
+  markTutorial('offered');
+  openDialog({ title: returning ? '新手教程上线了' : '初入荒野', body: () => <WelcomeBody returning={returning} /> });
+}
+
+function WelcomeBody({ returning }: { returning: boolean }) {
+  return (
+    <div class="welcome">
+      <div class="welcome-cast" aria-hidden="true">
+        <Portrait animal="rabbit" face />
+        <Portrait animal="deer" face />
+        <Portrait animal="wolf" face />
+      </div>
+      <p class="lead-text">
+        {returning ? '想重温规则，或者带朋友入门？' : '第一次来到荒野？'}
+        跟着向导走完前两夜，大约 3 分钟，之后这一局可以接着玩下去。
+      </p>
+      <ul class="welcome-list">
+        <li>
+          <Icon name="clues" size={18} />
+          <span>
+            <b>识破谎言</b>谁在冒充别的动物？
+          </span>
+        </li>
+        <li>
+          <Icon name="drop" size={18} />
+          <span>
+            <b>投放与行动</b>去哪里，怎样躲开天敌
+          </span>
+        </li>
+        <li>
+          <Icon name="food" size={18} />
+          <span>
+            <b>进食与饥饿</b>怎样撑过七个夜晚
+          </span>
+        </li>
+      </ul>
+      <div class="dialog-actions">
+        <button
+          class="btn ghost"
+          onClick={() => {
+            markTutorial('skipped');
+            closeDialog();
+          }}
+        >
+          {returning ? '以后再说' : '我会玩，直接开始'}
+        </button>
+        <button
+          class="btn primary"
+          onClick={() => {
+            closeDialog();
+            startTutorial();
+          }}
+        >
+          开始新手教程
+          <Icon name="next" size={17} />
+        </button>
+      </div>
+      <p class="welcome-foot">随时可以在首页重新打开教程。</p>
     </div>
   );
 }

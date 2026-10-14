@@ -1,5 +1,5 @@
 import type { ComponentChildren } from 'preact';
-import { useEffect, useState } from 'preact/hooks';
+import { useEffect, useRef, useState } from 'preact/hooks';
 import { SPECIES, species, type SpeciesId } from '../game/data';
 import type { GameView, PlayerSummary, ViewEntry } from '../game/view';
 import { parseStatement } from '../game/bots/language';
@@ -184,6 +184,29 @@ export function useLayout(): Layout {
     return () => queries.forEach(q => q.removeEventListener('change', update));
   }, []);
   return layout;
+}
+
+/** The panels a phone switches between; wider layouts show several at once. */
+export type PanelTab = 'play' | 'chat' | 'people' | 'log';
+
+/** Asks whichever layout is showing to bring a panel into view. */
+export function focusTab(tab: PanelTab) {
+  window.dispatchEvent(new CustomEvent<PanelTab>('focus-tab', { detail: tab }));
+}
+
+export function useFocusTab(handler: (tab: PanelTab) => void) {
+  const latest = useRef(handler);
+  latest.current = handler;
+  useEffect(() => {
+    const listener = (e: Event) => latest.current((e as CustomEvent<PanelTab>).detail);
+    window.addEventListener('focus-tab', listener);
+    return () => window.removeEventListener('focus-tab', listener);
+  }, []);
+}
+
+/** Puts a draft into the message composer without sending it. */
+export function composeMessage(to: string, text: string) {
+  window.dispatchEvent(new CustomEvent('compose', { detail: { to, text } }));
 }
 
 export function copyInvite(code: string) {

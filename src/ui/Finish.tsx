@@ -1,9 +1,11 @@
 import { SCORE, species } from '../game/data';
 import type { GameView } from '../game/view';
+import { survivedAs } from '../client/records';
 import { leave, playAgain, useApp } from '../client/store';
 import { Portrait, numeral } from './common';
 import { showReview } from './dialogs';
 import { Icon } from './icons';
+import { Replay } from './Replay';
 
 function download(view: GameView) {
   const blob = new Blob(
@@ -16,6 +18,32 @@ function download(view: GameView) {
   a.download = `食物链-${view.code}-复盘.json`;
   a.click();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+/** What this match added to your records on this device. */
+function RecordNote() {
+  const { result, records } = useApp();
+  if (!result) return null;
+  const collected = survivedAs(records).length;
+  const name = species(result.animal).name;
+  return (
+    <p class={`finish-record ${result.firstSurvival || result.newBest ? 'new' : ''}`}>
+      <Icon name="award" size={17} />
+      <span>
+        {result.firstSurvival ? (
+          <>
+            生存图鉴新收录：<b>{name}</b>
+          </>
+        ) : result.survived ? (
+          `又一次以${name}活到了最后`
+        ) : (
+          `以${name}活过七夜，就能把它收进生存图鉴`
+        )}
+        {` · 图鉴 ${collected}/8`}
+        {result.newBest ? ' · 新的最高分！' : ` · 最高 ${records.best} 分`}
+      </span>
+    </p>
+  );
 }
 
 export function Finish() {
@@ -66,6 +94,7 @@ export function Finish() {
               <dd>{guesses.length ? `${right}/${guesses.length}` : '—'}</dd>
             </div>
           </dl>
+          <RecordNote />
           <div class="finish-actions">
             {solo && (
               <button class="btn primary large" onClick={playAgain}>
@@ -136,6 +165,8 @@ export function Finish() {
           推理错误（最低 0）
         </p>
       </section>
+
+      <Replay view={g} />
     </main>
   );
 }

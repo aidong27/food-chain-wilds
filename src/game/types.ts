@@ -127,6 +127,50 @@ export interface BotMemory {
   seenAt: Record<string, { region: RegionId; round: number }>;
 }
 
+/**
+ * Choices fixed in advance for computer players, by seat. The guided tutorial
+ * uses one so its story plays out the same way every time; normal matches have none.
+ */
+export interface Script {
+  /** Identity of every seat, seat 1 first. */
+  roles?: SpeciesId[];
+  /** The identity a bot claims when it lies, by seat. */
+  covers?: Partial<Record<number, SpeciesId>>;
+  /** Bot personas by seat (see BotMemory.persona). */
+  personas?: Partial<Record<number, number>>;
+  rounds?: Partial<Record<number, RoundScript>>;
+}
+
+export interface RoundScript {
+  /** Replaces the bots' own chatter at the start of the round; `to` is a seat, or everyone. */
+  talk?: { seat: number; to?: number; text: string }[];
+  /** Where bots start: 'human' is wherever the human chose, 'away' any region with food except that one. */
+  drop?: Partial<Record<number, RegionId | 'human' | 'away'>>;
+  /** Seats that spend no actions this round. */
+  idle?: number[];
+  /** Food choices; `target` is a seat. */
+  food?: Partial<Record<number, { choice: FoodChoice; target?: number }>>;
+}
+
+/** Where one animal was and how it fared in one night, kept for the final reveal. */
+export interface NightPlayer {
+  id: string;
+  drop: RegionId | null;
+  /** Where the animal stood when food was resolved. */
+  location: RegionId;
+  food: FoodChoice | null;
+  fed: boolean;
+  hp: number;
+  alive: boolean;
+}
+
+export interface NightRecord {
+  round: number;
+  /** Everyone who was alive when the night began. */
+  players: NightPlayer[];
+  hunts: { hunter: string; prey: string; damage: number }[];
+}
+
 export interface Game {
   /** Bumped whenever the stored shape changes, so stale rooms can be discarded. */
   version: number;
@@ -150,6 +194,9 @@ export interface Game {
   event: string;
   createdAt: number;
   bots: Record<string, BotMemory>;
+  /** One record per resolved night; secret until the match ends. */
+  history?: NightRecord[];
+  script?: Script;
 }
 
 export type Command =

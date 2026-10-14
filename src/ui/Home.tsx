@@ -2,20 +2,25 @@ import { useEffect, useState } from 'preact/hooks';
 import { RULES, SPECIES, species, type Diet, type SpeciesId } from '../game/data';
 import type { Difficulty } from '../game/types';
 import { savedSolo } from '../client/links';
+import { survivedAs } from '../client/records';
 import {
   createRoom,
+  getState,
   joinRoom,
+  playedBefore,
   refreshServer,
   resumeSolo,
   savedDifficulty,
   savedName,
   send,
   startSolo,
+  startTutorial,
   toast,
+  tutorialStatus,
   useApp,
 } from '../client/store';
 import { Portrait, copyInvite, useLayout } from './common';
-import { showBestiary, showRules } from './dialogs';
+import { showBestiary, showRules, showWelcome } from './dialogs';
 import { Icon, phaseIcon } from './icons';
 import { WildsMap } from './WildsMap';
 
@@ -41,6 +46,21 @@ const SERVER_TEXT = {
   offline: '暂时连不上联机服务器；单人练习不受影响',
 } as const;
 
+function TutorialEntry({ name, done }: { name: () => string; done: boolean }) {
+  return (
+    <button class={`tutorial-entry ${done ? 'done' : ''}`} onClick={() => startTutorial(name())}>
+      <span class="te-icon">
+        <Icon name="tutorial" size={20} />
+      </span>
+      <span>
+        <b>{done ? '重温新手教程' : '第一次玩？先走一遍新手教程'}</b>
+        <small>{done ? '跟着向导再玩一遍前两夜' : '约 3 分钟 · 跟着向导玩两夜，学会全部基础'}</small>
+      </span>
+      <Icon name="next" size={18} />
+    </button>
+  );
+}
+
 function SoloForm({ name }: { name: () => string }) {
   const app = useApp();
   const [animal, setAnimal] = useState<SpeciesId | ''>('');
@@ -48,8 +68,10 @@ function SoloForm({ name }: { name: () => string }) {
   const save = app.hasSave ? savedSolo() : null;
   const saveMe = save?.game.players.find(p => p.id === save.playerId);
   const chosen = animal ? species(animal) : null;
+  const learned = tutorialStatus() === 'done';
   return (
     <>
+      {!learned && <TutorialEntry name={name} done={false} />}
       <div class="field">
         <span id="difficulty-label">练习难度</span>
         <div class="segmented" role="radiogroup" aria-labelledby="difficulty-label">
@@ -115,7 +137,7 @@ function SoloForm({ name }: { name: () => string }) {
         <button class="resume" onClick={resumeSolo}>
           <Portrait animal={saveMe.animal} face class="resume-face" />
           <span>
-            <b>继续上次练习</b>
+            <b>{save.tutorial !== null && save.tutorial !== undefined ? '继续新手教程' : '继续上次练习'}</b>
             <small>
               第 {save.game.round} 回合 · {species(saveMe.animal).name}
               {saveMe.alive ? '' : '（观战）'}
@@ -124,6 +146,7 @@ function SoloForm({ name }: { name: () => string }) {
           <Icon name="next" size={18} />
         </button>
       )}
+      {learned && <TutorialEntry name={name} done />}
     </>
   );
 }
@@ -180,6 +203,8 @@ function OnlineForm({ name, invite }: { name: () => string; invite: string }) {
 }
 
 export function Home() {
+  const { records } = useApp();
+  const survived = survivedAs(records);
   const [name, setName] = useState(savedName);
   const [invite] = useState(() => new URLSearchParams(location.search).get('room')?.toUpperCase() || '');
   const [mode, setMode] = useState<'solo' | 'online'>(invite ? 'online' : 'solo');
@@ -187,6 +212,8 @@ export function Home() {
 
   useEffect(() => {
     void refreshServer();
+    // The first visit offers the guided match; an invitation or a match being restored goes straight on.
+    if (!invite && !getState().link && !tutorialStatus()) showWelcome(playedBefore());
   }, []);
 
   return (
@@ -251,18 +278,40 @@ export function Home() {
         <header class="home-head">
           <h2 class="brush">荒野居民</h2>
           <p>8 种动物，各有食谱、弱点与一项技能。开局随机分配，身份只有自己知道。</p>
+          {records.games > 0 && (
+            <p class="records-line">
+              <Icon name="award" size={16} />
+              <span>
+                生存图鉴 <b>{survived.length}/8</b> · 已玩 {records.games} 局 · 活到最后 {records.survived} 局 · 最高 {records.best} 分
+              </span>
+            </p>
+          )}
         </header>
         <div class="species-grid">
-          {SPECIES.map(s => (
-            <button key={s.id} class="species-card" onClick={() => showBestiary(s.id)} aria-label={`了解${s.name}`}>
-              <Portrait animal={s.id} face />
-              <span class="species-info">
-                <b>{s.name}</b>
-                <small>{s.title}</small>
-              </span>
-              <em class={`diet ${s.diet}`}>{DIET[s.diet]}</em>
-            </button>
-          ))}
+          {SPECIES.map(s => {
+            const wins = records.species[s.id]?.survived ?? 0;
+            return (
+              <button
+                key={s.id}
+                class={`species-card ${wins ? 'collected' : ''}`}
+                onClick={() => showBestiary(s.id)}
+                aria-label={`了解${s.name}${wins ? `，已以它活到最后 ${wins} 次` : ''}`}
+              >
+                <Portrait animal={s.id} face />
+                <span class="species-info">
+                  <b>{s.name}</b>
+                  <small>{s.title}</small>
+                </span>
+                <em class={`diet ${s.diet}`}>{DIET[s.diet]}</em>
+                {wins > 0 && (
+                  <span class="collected-mark" title={`以${s.name}活到最后 ${wins} 次`}>
+                    <Icon name="trophy" size={13} />
+                    {wins}
+                  </span>
+                )}
+              </button>
+            );
+          })}
         </div>
       </section>
 

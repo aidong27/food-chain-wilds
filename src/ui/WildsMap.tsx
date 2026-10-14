@@ -44,7 +44,7 @@ export function WildsMap({ view, selected, home, cover }: Props) {
   const caption = home || !view ? '七夜荒野 · 六处地区彼此相连' : view.event;
 
   return (
-    <section class={`map-stage ${cover ? 'cover' : ''}`} aria-label="荒野地图">
+    <section class={`map-stage ${cover ? 'cover' : ''}`} aria-label="荒野地图" data-tut="map">
       <div class="map-layer">
         <div class="map-art" />
         <svg class="map-paths" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">

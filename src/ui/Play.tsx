@@ -4,7 +4,20 @@ import { RULES, phasesFor, region, species, type PhaseId } from '../game/data';
 import type { GameView } from '../game/view';
 import { toggleSound, urls, useApp } from '../client/store';
 import { ActionPanel, PrimaryButton } from './ActionPanel';
-import { Chip, Pips, PlayerFace, Portrait, claimsFrom, copyInvite, dietText, numeral, pad, useLayout } from './common';
+import {
+  Chip,
+  Pips,
+  PlayerFace,
+  Portrait,
+  claimsFrom,
+  copyInvite,
+  dietText,
+  numeral,
+  pad,
+  useFocusTab,
+  useLayout,
+  type PanelTab,
+} from './common';
 import { confirmLeave, showBestiary, showMenu, showPlayer, showRules } from './dialogs';
 import { Icon, phaseIcon, type IconName } from './icons';
 import { ChatPanel, JournalPanel } from './LogPanel';
@@ -203,7 +216,7 @@ function MeCard({ view }: { view: GameView }) {
   const p = view.me!;
   const s = species(p.animal);
   return (
-    <section class={`card me-card ${p.alive ? '' : 'fallen'}`} aria-label="你的身份">
+    <section class={`card me-card ${p.alive ? '' : 'fallen'}`} aria-label="你的身份" data-tut="me">
       <div class="me-portrait">
         <Portrait animal={s.id} face />
         <span class="chip me-secret">
@@ -231,7 +244,7 @@ function MeStrip({ view }: { view: GameView }) {
   const s = species(p.animal);
   const [open, setOpen] = useState(false);
   return (
-    <section class={`card me-strip ${p.alive ? '' : 'fallen'}`} aria-label="你的身份">
+    <section class={`card me-strip ${p.alive ? '' : 'fallen'}`} aria-label="你的身份" data-tut="me">
       <Portrait animal={s.id} face class="me-thumb" />
       <div class="me-strip-main">
         <div class="me-strip-title">
@@ -293,6 +306,7 @@ function Roster({ view, bare }: { view: GameView; bare?: boolean }) {
             <li key={p.id}>
               <button
                 class={`player-row ${p.id === me.id ? 'self' : ''} ${p.alive ? '' : 'dead'}`}
+                data-tut={`player-${p.seat}`}
                 onClick={() => showPlayer(p.id)}
                 aria-label={`${p.seat} 号 ${p.name}：${facts}。查看与记录推理`}
               >
@@ -328,17 +342,7 @@ function Roster({ view, bare }: { view: GameView; bare?: boolean }) {
   );
 }
 
-type FeedTab = 'chat' | 'log';
-type SideTab = 'people' | FeedTab;
-type PhoneTab = 'play' | SideTab;
-
-/** "查看营地消息" and similar buttons ask whichever layout is showing to open the chat. */
-function useFocusChat(open: () => void) {
-  useEffect(() => {
-    window.addEventListener('focus-chat', open);
-    return () => window.removeEventListener('focus-chat', open);
-  }, []);
-}
+type SideTab = Exclude<PanelTab, 'play'>;
 
 function TabButton<T extends string>({
   id,
@@ -364,7 +368,9 @@ function TabButton<T extends string>({
 function FeedTabs({ view, people }: { view: GameView; people?: boolean }) {
   const { unreadChat } = useApp();
   const [tab, setTab] = useState<SideTab>(people ? 'people' : 'chat');
-  useFocusChat(() => setTab('chat'));
+  useFocusTab(t => {
+    if (t === 'chat' || t === 'log' || (t === 'people' && people)) setTab(t);
+  });
   return (
     <section class="card side-panel">
       <div class="tabs" role="tablist">
@@ -390,9 +396,9 @@ function FeedTabs({ view, people }: { view: GameView; people?: boolean }) {
   );
 }
 
-function Dock({ view, tab, setTab }: { view: GameView; tab: PhoneTab; setTab: (t: PhoneTab) => void }) {
+function Dock({ view, tab, setTab }: { view: GameView; tab: PanelTab; setTab: (t: PanelTab) => void }) {
   const { unreadChat } = useApp();
-  const tabs: { id: PhoneTab; label: string; icon: IconName }[] = [
+  const tabs: { id: PanelTab; label: string; icon: IconName }[] = [
     { id: 'play', label: '行动', icon: phaseIcon(view.phase as PhaseId) },
     { id: 'chat', label: '消息', icon: 'public' },
     { id: 'people', label: '居民', icon: 'people' },
@@ -416,12 +422,14 @@ function Dock({ view, tab, setTab }: { view: GameView; tab: PhoneTab; setTab: (t
 
 function PhonePlay({ view }: { view: GameView }) {
   const { selected } = useApp();
-  const [tab, setTab] = useState<PhoneTab>('play');
-  useFocusChat(() => setTab('chat'));
-  const go = (t: PhoneTab) => {
+  const [tab, setTab] = useState<PanelTab>('play');
+  const go = (t: PanelTab) => {
     setTab(t);
     window.scrollTo({ top: 0 });
   };
+  useFocusTab(t => {
+    if (t !== tab) go(t);
+  });
   // A new phase brings you back to the decision at hand.
   const phaseKey = `${view.round}:${view.phase}`;
   useEffect(() => {

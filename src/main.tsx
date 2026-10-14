@@ -7,6 +7,7 @@ import './ui/styles/base.css';
 import './ui/styles/map.css';
 import './ui/styles/play.css';
 import './ui/styles/screens.css';
+import './ui/styles/tutorial.css';
 
 render(<App />, document.getElementById('app')!);
 boot();
