@@ -1,0 +1,9 @@
+dist
+dist-pages
+node_modules
+package-lock.json
+worker-configuration.d.ts
+.wrangler
+*.md
+index.html
+wrangler.jsonc

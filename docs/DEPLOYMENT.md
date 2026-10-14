@@ -50,3 +50,32 @@
 GitHub Pages 只承载静态内容。原 Cloudflare 服务需要继续运行，单人电脑练习同样需要后端连接。席位凭证保存在当前标签页的 `sessionStorage`，房间约 24 小时过期；跨站或跨设备不会自动恢复同一席位。
 
 语音使用 WebRTC 与公开 STUN，没有 TURN 中继。信令通道测试通过不等于真实麦克风或跨运营商音频已验证；严格 NAT、防火墙环境可能无法建立音频，文字消息可继续使用。
+
+---
+
+# 2.0 升级说明
+
+日期：2026-10-14。分支 `claude/game-overhaul`。
+
+## 变更范围
+
+- 规则引擎重写为 `src/game/` 下的带类型模块，保留 1.0 的回合流程、信息隔离与全部规则测试；按模拟结果调整了原文第 20 节留空的动物数值（见 README）。
+- 新增电脑玩家推理与对话（`src/game/bots/`），只读取自身的玩家视图。
+- 单人练习改为浏览器本地运行，存档保存在 `localStorage`；联机仍由原 Worker 承载。
+- 前端改用 Preact，移除 Google Fonts 依赖；`index.html` 与 `public/_headers` 的 CSP 相应收紧。
+- Worker 重构为 `server/worker.ts`（路由）、`server/room.ts`（`GameRoom`）、`server/http.ts`。类名、绑定、SQLite 表结构与 `v1` migration 不变。
+- 联机协议版本 2：`/api/health` 返回 `protocol`，WebSocket 地址携带 `v`；旧客户端会收到 4001 关闭码与“请刷新页面”的原因，旧格式房间按过期处理。
+
+## 部署步骤
+
+1. 合并到 `main` 后，Pages 工作流自动测试并发布前端，单人练习立即可用。
+2. 维护者在本地已登录 Cloudflare 的环境执行 `npm ci && npm run deploy`，联机入口随即恢复。部署前 Pages 会显示“联机服务器仍是旧版本”。
+3. 可选：执行 `GAME_BASE_URL=https://food-chain-wilds.food-chain-game.workers.dev GAME_ORIGIN=https://aidong27.github.io npm run test:network` 验证线上联机（会创建独立测试房间）。
+
+## 部署前验证
+
+- `npm test`：35 项通过（规则 23、电脑 8、Pages/CORS 4），含每种身份 25 局的整局模拟与电脑“不读取隐藏信息”的性质测试。
+- `npm run simulate -- 2000`：各身份存活率 37%–62%，平均每局 4.2 位存活。
+- `npm run build`、`npm run build:pages`：TypeScript 与 Vite 构建通过。
+- 本地 Worker 上 `npm run test:network`：16 项通过；加上 `GAME_ORIGIN=https://aidong27.github.io` 为 18 项通过，含旧协议客户端被提示刷新、三客户端联机与单人对电脑的完整七回合。
+- 无头 Chromium 实测：1440×900 与 390×844 下完整打完单人七回合；两个浏览器通过邀请链接加入同一联机房间并完成一回合（含公开消息、投放、痕迹、通话与进食）；控制台无错误。未使用真实麦克风。

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { gameUrls } from '../src/urls';
+import { gameUrls } from '../src/client/urls';
 import { originPolicy, preflight } from '../server/cors';
 
 const pagesOrigin = 'https://aidong27.github.io';
@@ -45,10 +45,11 @@ test('CORS permits only the exact Pages origin and original site', () => {
 });
 
 test('preflight accepts JSON POST but rejects unexpected methods and headers', () => {
-  const request = (method: string, headers: string) => new Request(`${backend}/api/rooms`, {
-    method: 'OPTIONS',
-    headers: { Origin: pagesOrigin, 'Access-Control-Request-Method': method, 'Access-Control-Request-Headers': headers },
-  });
+  const request = (method: string, headers: string) =>
+    new Request(`${backend}/api/rooms`, {
+      method: 'OPTIONS',
+      headers: { Origin: pagesOrigin, 'Access-Control-Request-Method': method, 'Access-Control-Request-Headers': headers },
+    });
   const allowed = request('POST', 'content-type');
   const response = preflight(allowed, originPolicy(allowed, pagesOrigin).headers);
   assert.equal(response.status, 204);
