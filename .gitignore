@@ -1,0 +1,11 @@
+node_modules/
+dist/
+dist-pages/
+.wrangler/
+.dev.vars
+.env*
+.sites-runtime/
+artifacts/
+deliverables/
+worker-configuration.d.ts
+*.log
