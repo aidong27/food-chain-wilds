@@ -10,8 +10,14 @@ export function originPolicy(request: Request, pagesOrigin: string) {
 export function preflight(request: Request, headers: Record<string, string>): Response {
   const method = request.headers.get('Access-Control-Request-Method');
   const requestedHeaders = (request.headers.get('Access-Control-Request-Headers') || '')
-    .split(',').map(value => value.trim().toLowerCase()).filter(Boolean);
-  if (!request.headers.get('Origin') || !['GET', 'POST'].includes(method || '') || requestedHeaders.some(value => value !== 'content-type')) {
+    .split(',')
+    .map(value => value.trim().toLowerCase())
+    .filter(Boolean);
+  if (
+    !request.headers.get('Origin') ||
+    !['GET', 'POST'].includes(method || '') ||
+    requestedHeaders.some(value => value !== 'content-type')
+  ) {
     return new Response(null, { status: 403, headers });
   }
   return new Response(null, {

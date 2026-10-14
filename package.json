@@ -1,6 +1,6 @@
 {
   "name": "food-chain-game",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "private": true,
   "type": "module",
   "scripts": {
@@ -9,16 +9,23 @@
     "build": "tsc --noEmit && tsc -p tsconfig.server.json --noEmit && vite build",
     "build:pages": "wrangler types && tsc --noEmit && tsc -p tsconfig.server.json --noEmit && vite build --mode pages",
     "test": "tsx --test tests/*.test.ts",
+    "test:network": "node tests/network.mjs",
+    "simulate": "tsx scripts/simulate.ts",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
     "preview:worker": "wrangler dev --port 8787",
-    "deploy": "npm run build && wrangler deploy",
-    "test:network": "node tests/network.mjs"
+    "deploy": "npm run build && wrangler deploy"
   },
   "devDependencies": {
-    "@cloudflare/workers-types": "latest",
-    "@types/node": "latest",
-    "tsx": "latest",
-    "typescript": "latest",
-    "vite": "latest",
-    "wrangler": "latest"
+    "@cloudflare/workers-types": "^5.20260917.1",
+    "@types/node": "^22.20.3",
+    "prettier": "3.9.9",
+    "tsx": "^4.23.13",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.0",
+    "wrangler": "^4.133.0"
+  },
+  "dependencies": {
+    "preact": "^10.29.8"
   }
 }
