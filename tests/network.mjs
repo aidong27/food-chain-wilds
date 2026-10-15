@@ -12,7 +12,7 @@ import { request as httpsRequest } from 'node:https';
 
 const base = process.env.GAME_BASE_URL || 'http://127.0.0.1:8787';
 const origin = process.env.GAME_ORIGIN;
-const PROTOCOL = 2;
+const PROTOCOL = 3;
 const results = [];
 const sessions = [];
 const pass = text => results.push(text);

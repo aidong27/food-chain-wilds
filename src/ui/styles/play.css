@@ -1989,6 +1989,11 @@
     font-size: 13px;
   }
 
+  /* Seats sit exactly as far apart as their hit areas reach, so a tap never opens the neighbour. */
+  .clue-who {
+    gap: 14px 8px;
+  }
+
   .clue .seat {
     position: relative;
     width: 26px;
@@ -1999,7 +2004,7 @@
   .clue .seat::after {
     content: '';
     position: absolute;
-    inset: -7px;
+    inset: -7px -4px;
   }
 
   .coach .icon-btn {

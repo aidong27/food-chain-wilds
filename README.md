@@ -4,6 +4,12 @@
 
 **在线游玩：[GitHub Pages](https://aidong27.github.io/food-chain-wilds/)** · [原站](https://food-chain-wilds.food-chain-game.workers.dev/)
 
+## 2.2.1：审查修正
+
+- 线索板席位的触控范围不再互相重叠：触屏上席位之间的空隙正好等于触控范围向外扩出的距离，点到哪个就打开哪个。
+- 联机协议升到第 3 版。2.1 改了野兔的饥饿周期，而饥饿提示由客户端按自己的规则计算，所以 2.0 与之后的客户端和后端不能混用。
+- 2.1 之前开始、之后才继续的对局，前几夜没有记录；终局不再显示这种不完整的真相回放。
+
 ## 2.2：手机端更顺手
 
 - **操作就在地图下面。** 手机上每个阶段的决定紧接在地图和身份卡下方，常见尺寸的手机不用滚动就能边看地图边操作：
@@ -136,7 +142,7 @@ npm run format        # Prettier
 
 **GitHub Pages（前端）**：`main` 更新后，GitHub Actions 运行测试并部署 `npm run build:pages` 的产物，基路径为 `/food-chain-wilds/`。单人练习只需要这一步。
 
-**Cloudflare Worker（联机后端）**：2.0 的联机协议升级到第 2 版，必须由拥有该 Cloudflare 账号的维护者执行一次：
+**Cloudflare Worker（联机后端）**：联机协议在 2.0 升到第 2 版，2.2.1 升到第 3 版。前端更新后，必须由拥有该 Cloudflare 账号的维护者执行一次：
 
 ```sh
 npm run deploy

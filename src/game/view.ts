@@ -5,7 +5,8 @@
 import { REGIONS, RULES, region, type RegionId, type SpeciesId } from './data';
 import type { Body, Call, Difficulty, Entry, Game, Mode, NightRecord, Player, Stage } from './types';
 
-export const PROTOCOL_VERSION = 2;
+/** Raised whenever mixed versions could not play together, including rule changes the client displays (3: rabbit hunger in 2.1). */
+export const PROTOCOL_VERSION = 3;
 
 export interface PlayerSummary {
   id: string;
