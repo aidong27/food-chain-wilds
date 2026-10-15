@@ -762,6 +762,16 @@ textarea:disabled {
   color: var(--amber);
 }
 
+/* Phones keep their controls near the bottom edge, so notices drop in from the top
+   instead, below where the phase pill appears. */
+@media (max-width: 979px), (max-height: 559px) {
+  #toast {
+    top: calc(var(--bar-h) + 64px + env(safe-area-inset-top));
+    bottom: auto;
+    transform: translate(-50%, -16px);
+  }
+}
+
 .phase-banner {
   position: fixed;
   inset: 0;
@@ -1051,6 +1061,15 @@ dialog::backdrop {
 
   .dialog-content {
     padding: 16px 20px calc(24px + env(safe-area-inset-bottom));
+  }
+}
+
+/* iOS zooms into any field under 16px, landscape phones included. */
+@media (pointer: coarse) {
+  .input,
+  select,
+  textarea {
+    font-size: 16px;
   }
 }
 

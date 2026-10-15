@@ -294,6 +294,25 @@
   animation: spin 9s linear infinite;
 }
 
+/* Until a start is picked, the regions with food breathe to invite a tap. */
+.region.is-pickable .region-dot {
+  animation: pickable 1.8s ease-in-out infinite;
+}
+
+@keyframes pickable {
+  50% {
+    box-shadow:
+      0 0 0 2px rgba(163, 214, 127, 0.9),
+      0 0 0 9px rgba(163, 214, 127, 0.16),
+      0 6px 18px rgba(0, 0, 0, 0.55);
+  }
+}
+
+.region.is-reachable .region-name {
+  color: var(--amber-hi);
+  box-shadow: 0 0 0 1.5px var(--amber-line);
+}
+
 .region.is-unseen .region-dot,
 .region.is-unseen .region-name {
   opacity: 0.55;

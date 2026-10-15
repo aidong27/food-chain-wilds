@@ -250,6 +250,12 @@ function MeStrip({ view }: { view: GameView }) {
         <div class="me-strip-title">
           <h2>{s.name}</h2>
           <small>{s.title} · 仅你可见</small>
+        </div>
+        <div class="me-strip-vitals">
+          <Vitals view={view} />
+        </div>
+        <div class="me-strip-foot">
+          <Hunger view={view} />
           <button
             class={`chip ${open ? 'amber' : ''}`}
             onClick={() => setOpen(!open)}
@@ -258,12 +264,9 @@ function MeStrip({ view }: { view: GameView }) {
           >
             <Icon name="skill" size={13} />
             {s.skill}
+            <Icon name="chevron" size={13} class={`me-fold ${open ? 'open' : ''}`} />
           </button>
         </div>
-        <div class="me-strip-vitals">
-          <Vitals view={view} />
-        </div>
-        <Hunger view={view} />
       </div>
       {open && (
         <div class="me-extra">
@@ -430,10 +433,11 @@ function PhonePlay({ view }: { view: GameView }) {
   useFocusTab(t => {
     if (t !== tab) go(t);
   });
-  // A new phase brings you back to the decision at hand.
+  // A new phase brings you back to the decision at hand, which starts right under the map.
   const phaseKey = `${view.round}:${view.phase}`;
   useEffect(() => {
     if (tab === 'people') go('play');
+    else if (tab === 'play') window.scrollTo({ top: 0 });
   }, [phaseKey]);
   return (
     <main class={`play play-narrow phase-${view.phase}`}>
