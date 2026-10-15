@@ -1,4 +1,4 @@
-import { useState } from 'preact/hooks';
+import { useEffect, useRef, useState } from 'preact/hooks';
 import {
   REGIONS,
   RULES,
@@ -215,10 +215,27 @@ function TalkControls({ view, layout }: { view: GameView; layout: Layout }) {
   );
 }
 
-function DropControls({ view }: { view: GameView }) {
+function DropControls({ view, layout }: { view: GameView; layout: Layout }) {
   const p = view.me!;
   const chosen = p.drop ? region(p.drop) : null;
   const food = chosen ? view.resources[chosen.id] : 0;
+  // On phones the map right above is the picker; wider screens also get six large buttons.
+  if (layout === 'narrow')
+    return (
+      <div class={`drop-pick ${chosen ? 'chosen' : ''}`} aria-live="polite">
+        <span class="dp-icon">
+          <Icon name={chosen ? regionIcon(chosen.id) : 'tap'} size={20} />
+        </span>
+        <p>
+          <b>{chosen ? `投放到${chosen.name}` : '点地图上的地区，选今晚的起点'}</b>
+          <small>
+            {chosen
+              ? `${food ? `${food} 份食物` : '没有食物'} · ${chosen.description}${p.ready ? '' : '锁定前可以随时更改。'}`
+              : '有食物（绿叶）的地区容易吃饱，也更容易遇到捕食者。'}
+          </small>
+        </p>
+      </div>
+    );
   return (
     <>
       <RegionPicker view={view} mode="drop" />
@@ -239,11 +256,17 @@ function DropControls({ view }: { view: GameView }) {
 const ACTION_TAGS = new Set(['move', 'hide', 'skill', 'scream', 'overdraw']);
 
 /** What your actions turned up this round, newest first, right where you took them. */
-function RoundLog({ view }: { view: GameView }) {
+function RoundLog({ view, follow }: { view: GameView; follow: boolean }) {
   const entries = view.log.filter(l => l.round === view.round && l.tag && ACTION_TAGS.has(l.tag)).slice(-3);
+  const list = useRef<HTMLUListElement>(null);
+  const newest = entries.at(-1)?.id;
+  // On a phone the answer can land under the dock; bring it up.
+  useEffect(() => {
+    if (follow && newest !== undefined) list.current?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  }, [newest]);
   if (!entries.length) return null;
   return (
-    <ul class="round-log" data-tut="feed" aria-label="本回合的行动结果" aria-live="polite">
+    <ul ref={list} class="round-log" data-tut="feed" aria-label="本回合的行动结果" aria-live="polite">
       {entries.reverse().map(l => (
         <li key={l.id} class={entryTone(l)}>
           <Icon name={entryIcon(l)} size={15} />
@@ -265,13 +288,16 @@ const SKILL_NOTE: Record<SpeciesId, string> = {
   crow: '查看该地足迹',
 };
 
-function ActionControls({ view }: { view: GameView }) {
+function ActionControls({ view, layout }: { view: GameView; layout: Layout }) {
   const { selected } = useApp();
   const p = view.me!;
   const s = species(p.animal);
   const r = region(selected);
   const busy = p.ready || p.actions <= 0;
   const adjacent = isAdjacent(p.location, selected);
+  const onMap = layout === 'narrow';
+  // Phones show the four actions in one row; the status line already says each costs 1 SP.
+  const cost = onMap ? '' : '1 SP · ';
   const skillLabel = s.skillTarget === 'any' ? `${s.skill}${r.short}` : s.skillTarget === 'adjacent' ? `${s.skill}到${r.short}` : s.skill;
   const skillBlocked = busy || p.skillUsed || (s.skillTarget === 'adjacent' && !adjacent);
   const neighbours = sameDrop(view);
@@ -281,38 +307,41 @@ function ActionControls({ view }: { view: GameView }) {
         <Chip icon={regionIcon(p.location)} tone="teal">
           你在{region(p.location).name}
         </Chip>
-        <span class="ap-label">剩余行动</span>
+        <span class="ap-label">{onMap ? '行动 · 每次 1 SP' : '剩余行动'}</span>
         <span class="pips-inline" role="img" aria-label={`剩余 ${p.actions} 次行动`}>
           {Array.from({ length: RULES.actionsPerRound }, (_, i) => (
             <i key={i} class={i < p.actions ? 'on' : ''} />
           ))}
         </span>
         <span class="grow" />
-        <Chip icon="sp" tone="teal">
-          体力 {p.sp}/{s.sp}
-        </Chip>
+        {/* Phones show stamina in the identity strip right above. */}
+        {!onMap && (
+          <Chip icon="sp" tone="teal">
+            体力 {p.sp}/{s.sp}
+          </Chip>
+        )}
         {p.sp === 0 && (
           <Chip icon="overdraw" tone="red">
             再行动将透支 1 生命
           </Chip>
         )}
       </div>
-      <RegionPicker view={view} mode="target" />
+      {!onMap && <RegionPicker view={view} mode="target" />}
       <div class="tile-grid">
         <Tile
           action="move"
           icon="move"
           title={adjacent ? `移动到${r.short}` : '移动'}
-          note={adjacent ? '1 SP · 两地留下足迹' : '先选一个可前往的地区'}
+          note={adjacent ? `${cost}两地留下足迹` : onMap ? '点地图上带虚线圈的地区' : '先选一个可前往的地区'}
           disabled={busy || !adjacent}
           onClick={() => send({ type: 'move', region: selected })}
         />
-        <Tile action="hide" icon="hide" title="躲藏" note="1 SP · 抹除本地足迹" disabled={busy} onClick={() => send({ type: 'hide' })} />
+        <Tile action="hide" icon="hide" title="躲藏" note={`${cost}抹除本地足迹`} disabled={busy} onClick={() => send({ type: 'hide' })} />
         <Tile
           action="skill"
           icon="skill"
           title={skillLabel}
-          note={p.skillUsed ? '本回合已使用' : `1 SP · ${SKILL_NOTE[s.id]}`}
+          note={p.skillUsed ? '本回合已使用' : `${cost}${SKILL_NOTE[s.id]}`}
           disabled={skillBlocked}
           onClick={() => send({ type: 'skill', region: s.skillTarget === 'none' ? undefined : selected })}
         />
@@ -320,12 +349,12 @@ function ActionControls({ view }: { view: GameView }) {
           action="scream"
           icon="scream"
           title="尖叫"
-          note="1 SP · 让同地居民知道你在"
+          note={`${cost}让同地居民知道你在`}
           disabled={busy}
           onClick={() => send({ type: 'scream' })}
         />
       </div>
-      <RoundLog view={view} />
+      <RoundLog view={view} follow={onMap} />
       <p class="ap-note">
         {neighbours.length ? (
           <>
@@ -625,8 +654,8 @@ export function NightReport({ view }: { view: GameView }) {
 
 const TIPS: Partial<Record<PhaseId, string>> = {
   talk: '营地里有人在撒谎：线索板会标出撞了身份的居民。可以私信电脑居民提问，也可以点开任何居民，记下你对 Ta 身份的推理。',
-  drop: '点一个有食物的地区作为本回合起点（地图或地区按钮都可以），再锁定投放。所有人锁定后，投放会公开。',
-  action: '地图上的数字是其他居民的投放席位。和可疑的居民挤在一起？选一个「可前往」的相邻地区移动，或使用技能。',
+  drop: '选一个有食物的地区作为本回合起点，再锁定投放。所有人锁定后，投放会公开。',
+  action: '地图上的数字是其他居民的投放席位。和可疑的居民挤在一起？选一个带虚线圈的相邻地区移动，或使用技能。',
   food: '草食动物在有食物的地区采食；捕食者只能吃同一地区、食谱里的动物。选好后锁定。',
   settle: '这是今夜的结算。注意饥饿：连续不进食会开始失去生命，而食物只恢复体力。',
 };
@@ -658,6 +687,9 @@ function CoachTip({ view }: { view: GameView }) {
   );
 }
 
+/** Phases whose controls do not explain themselves on a phone without the panel heading. */
+const BRIEF = new Set<PhaseId>(['traces', 'call']);
+
 export function ActionPanel({ view, layout }: { view: GameView; layout: Layout }) {
   const docked = layout === 'narrow';
   const p = view.me!;
@@ -670,8 +702,8 @@ export function ActionPanel({ view, layout }: { view: GameView; layout: Layout }
       : info.hint;
   const controls = {
     talk: <TalkControls view={view} layout={layout} />,
-    drop: <DropControls view={view} />,
-    action: <ActionControls view={view} />,
+    drop: <DropControls view={view} layout={layout} />,
+    action: <ActionControls view={view} layout={layout} />,
     traces: <TraceControls view={view} />,
     call: <CallControls view={view} />,
     food: <FoodControls view={view} />,
@@ -683,6 +715,27 @@ export function ActionPanel({ view, layout }: { view: GameView; layout: Layout }
       快进到终局
     </button>
   );
+  if (docked) {
+    // Phones: the game bar already names the phase, so the decision sits right under the map
+    // and the beginner tip waits below it (except while talking, where it explains the board).
+    const tipFirst = phase === 'talk';
+    return (
+      <section class={`card action-panel docked phase-${phase}`} aria-label={info.name}>
+        <div class="ap-body">
+          {(!p.alive || BRIEF.has(phase)) && (
+            <p class="ap-brief">
+              <Icon name={phaseIcon(phase)} size={16} />
+              <span>{hint}</span>
+            </p>
+          )}
+          {tipFirst && <CoachTip view={view} />}
+          {p.alive || phase === 'settle' ? controls : null}
+          {!tipFirst && <CoachTip view={view} />}
+          {fastForward}
+        </div>
+      </section>
+    );
+  }
   return (
     <section class={`card action-panel phase-${phase}`} aria-labelledby="ap-title">
       <header class="ap-head">
@@ -693,17 +746,14 @@ export function ActionPanel({ view, layout }: { view: GameView; layout: Layout }
           <h2 id="ap-title">{info.name}</h2>
           <p>{hint}</p>
         </div>
-        {!docked && (
-          <div class="ap-cta">
-            {fastForward}
-            <PrimaryButton view={view} />
-          </div>
-        )}
+        <div class="ap-cta">
+          {fastForward}
+          <PrimaryButton view={view} />
+        </div>
       </header>
       <div class="ap-body">
         <CoachTip view={view} />
         {p.alive || phase === 'settle' ? controls : null}
-        {docked && fastForward}
       </div>
     </section>
   );

@@ -139,7 +139,9 @@ const STEPS: Step[] = [
     text: c =>
       me(c).drop && !hasFood(c, me(c).drop)
         ? '那里没有食物，麋鹿吃不到东西。换一个带绿叶标记的地区。'
-        : '选一个今晚的起点。麋鹿要吃草，挑一个有食物（绿叶标记）的地区——点地图或下面的按钮都行。',
+        : c.layout === 'narrow'
+          ? '选一个今晚的起点。麋鹿要吃草，在地图上点一个有食物（绿叶标记）的地区。'
+          : '选一个今晚的起点。麋鹿要吃草，挑一个有食物（绿叶标记）的地区——点地图或下面的按钮都行。',
   },
   {
     id: 'lock',
@@ -202,8 +204,8 @@ const STEPS: Step[] = [
     title: '选一条退路',
     text: c =>
       isAdjacent(me(c).location, c.app.selected)
-        ? '那里没有食物。再选一个带绿叶标记、标着「可前往」的地区。'
-        : '只能走到相邻的地区。选一个标着「可前往」、又有食物的地方。',
+        ? '那里没有食物。再选一个带虚线圈、又有绿叶标记的地区。'
+        : '只能走到相邻的地区——地图上带虚线圈的那些。选一个有食物（绿叶标记）的。',
   },
   {
     id: 'move',
@@ -216,7 +218,7 @@ const STEPS: Step[] = [
     text: c =>
       isAdjacent(me(c).location, c.app.selected)
         ? `点击「移动到${region(c.app.selected).short}」。移动会在出发地和目的地都留下足迹。`
-        : '先选一个标着「可前往」的相邻地区，再点「移动」。',
+        : '先选一个带虚线圈的相邻地区，再点「移动」。',
   },
   {
     id: 'end-action',
@@ -501,8 +503,11 @@ function placeBubble(anchor: Rect | null, w: number, h: number, layout: Layout, 
   const vw = window.innerWidth;
   const vh = window.innerHeight;
   const margin = 12;
-  const top0 = (layout === 'narrow' ? 56 : 60) + 10;
-  const bottom0 = vh - (layout === 'narrow' ? 82 : margin);
+  // Clear of the game bar, and on phones of the dock (hidden while typing).
+  const bar = document.querySelector('.gamebar')?.getBoundingClientRect().bottom ?? 60;
+  const tabs = document.querySelector('.dock')?.getBoundingClientRect();
+  const top0 = bar + 10;
+  const bottom0 = layout === 'narrow' && tabs?.height ? tabs.top - 12 : vh - margin;
   const clampX = (x: number) => Math.min(Math.max(x, margin), Math.max(margin, vw - w - margin));
   const clampY = (y: number) => Math.min(Math.max(y, top0), Math.max(top0, bottom0 - h));
   if (!anchor) return { left: clampX((vw - w) / 2), top: clampY((vh - h) / 2) };

@@ -64,14 +64,18 @@ export function WildsMap({ view, selected, home, cover }: Props) {
           const bodies = playing ? view.bodies.filter(b => b.location === r.id).length : 0;
           const others = located ? dropsAt(view, r.id) : [];
           const tag = here ? (me.alive ? '你在这里' : '倒下之处') : chosen ? '投放于此' : '';
+          // Until you pick a start, the regions with food invite a tap and none looks picked.
+          const pickable = dropping && !me.ready && !me.drop && food > 0;
+          const lit = choosing && (dropping ? chosen : selected === r.id);
           const classes = [
             'region',
-            choosing && selected === r.id && 'is-selected',
+            lit && 'is-selected',
             r.y > 75 && 'is-low',
             here && 'is-here',
             chosen && 'is-chosen',
             unseen && 'is-unseen',
             reachable && 'is-reachable',
+            pickable && 'is-pickable',
           ]
             .filter(Boolean)
             .join(' ');
@@ -92,7 +96,7 @@ export function WildsMap({ view, selected, home, cover }: Props) {
               class={classes}
               style={{ left: `${r.x}%`, top: `${r.y}%` }}
               aria-label={label}
-              aria-pressed={choosing ? selected === r.id : undefined}
+              aria-pressed={choosing ? lit : undefined}
               onClick={() => pickRegion(r.id)}
             >
               <span class="region-dot">

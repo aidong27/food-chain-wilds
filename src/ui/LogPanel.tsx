@@ -10,6 +10,9 @@ const QUICK = ['你是什么动物？', '你今晚去哪？', '你觉得谁是�
 
 const isChat = (l: ViewEntry) => l.kind === 'public' || l.kind === 'private';
 
+/** Buttons beside the message box leave it focused, so a phone keyboard stays open between messages. */
+const keepKeyboard = (e: MouseEvent) => e.preventDefault();
+
 /** Keeps a feed on its newest line unless the reader scrolled up on purpose. */
 function usePinnedScroll(count: number, active: boolean) {
   const ref = useRef<HTMLDivElement>(null);
@@ -49,6 +52,42 @@ function Bubble({ view, entry: l }: { view: GameView; entry: ViewEntry }) {
   );
 }
 
+/**
+ * While the keyboard is up for the message box, a phone's dock steps aside so
+ * the composer and the feed keep the room. Judged by how far the viewport
+ * shrank, because closing an Android keyboard leaves the box focused.
+ */
+function useTypingMode(active: boolean) {
+  useEffect(() => {
+    if (!active) return;
+    const root = document.documentElement;
+    const viewport = window.visualViewport;
+    const height = () => Math.min(window.innerHeight, viewport?.height ?? Infinity);
+    let width = window.innerWidth;
+    let tallest = height();
+    const update = () => {
+      // A new width means the phone turned, not that a keyboard opened.
+      if (window.innerWidth !== width) {
+        width = window.innerWidth;
+        tallest = height();
+      }
+      tallest = Math.max(tallest, height());
+      const focused = document.activeElement?.id === 'message-text';
+      root.classList.toggle('typing', focused && height() < tallest * 0.8);
+    };
+    const events = ['focusin', 'focusout'] as const;
+    viewport?.addEventListener('resize', update);
+    window.addEventListener('resize', update);
+    events.forEach(e => document.addEventListener(e, update));
+    return () => {
+      viewport?.removeEventListener('resize', update);
+      window.removeEventListener('resize', update);
+      events.forEach(e => document.removeEventListener(e, update));
+      root.classList.remove('typing');
+    };
+  }, [active]);
+}
+
 export function ChatPanel({ view, active }: { view: GameView; active: boolean }) {
   const { connected } = useApp();
   const me = view.me!;
@@ -68,6 +107,8 @@ export function ChatPanel({ view, active }: { view: GameView; active: boolean })
   useEffect(() => {
     if (recipient !== 'all' && !living.some(q => q.id === recipient)) setRecipient('all');
   }, [living.length]);
+
+  useTypingMode(active);
 
   // Drafts handed over from elsewhere, e.g. the tutorial; nothing is sent until you press send.
   useEffect(() => {
@@ -147,6 +188,7 @@ export function ChatPanel({ view, active }: { view: GameView; active: boolean })
               type="button"
               key={q}
               disabled={!me.alive}
+              onMouseDown={keepKeyboard}
               onClick={() => {
                 setDraft(q === '我是…' ? '我是' : q);
                 text.current?.focus();
@@ -173,7 +215,7 @@ export function ChatPanel({ view, active }: { view: GameView; active: boolean })
               }
             }}
           />
-          <button class="send-btn" aria-label="发送" disabled={!me.alive || !connected || !draft.trim()}>
+          <button class="send-btn" aria-label="发送" disabled={!me.alive || !connected || !draft.trim()} onMouseDown={keepKeyboard}>
             <Icon name="send" size={19} />
           </button>
         </div>

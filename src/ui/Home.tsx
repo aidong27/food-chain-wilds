@@ -71,6 +71,20 @@ function SoloForm({ name }: { name: () => string }) {
   const learned = tutorialStatus() === 'done';
   return (
     <>
+      {/* A match in progress is what a returning player most likely wants, so it comes first. */}
+      {save && saveMe && save.game.phase !== 'finished' && (
+        <button class="resume" onClick={resumeSolo}>
+          <Portrait animal={saveMe.animal} face class="resume-face" />
+          <span>
+            <b>{save.tutorial !== null && save.tutorial !== undefined ? '继续新手教程' : '继续上次练习'}</b>
+            <small>
+              第 {save.game.round} 回合 · {species(saveMe.animal).name}
+              {saveMe.alive ? '' : '（观战）'}
+            </small>
+          </span>
+          <Icon name="next" size={18} />
+        </button>
+      )}
       {!learned && <TutorialEntry name={name} done={false} />}
       <div class="field">
         <span id="difficulty-label">练习难度</span>
@@ -133,19 +147,6 @@ function SoloForm({ name }: { name: () => string }) {
         <Icon name="next" size={19} />
       </button>
       <p class="under">与 7 位电脑玩家对局 · 无需联网 · 随时暂停</p>
-      {save && saveMe && save.game.phase !== 'finished' && (
-        <button class="resume" onClick={resumeSolo}>
-          <Portrait animal={saveMe.animal} face class="resume-face" />
-          <span>
-            <b>{save.tutorial !== null && save.tutorial !== undefined ? '继续新手教程' : '继续上次练习'}</b>
-            <small>
-              第 {save.game.round} 回合 · {species(saveMe.animal).name}
-              {saveMe.alive ? '' : '（观战）'}
-            </small>
-          </span>
-          <Icon name="next" size={18} />
-        </button>
-      )}
       {learned && <TutorialEntry name={name} done />}
     </>
   );

@@ -527,10 +527,30 @@
   color: var(--amber);
 }
 
-.me-strip-title .chip {
+.me-strip-foot {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.me-strip-foot .hunger {
+  flex: 1;
+  min-width: 0;
+}
+
+.me-strip-foot .chip {
   flex: none;
-  min-height: 28px;
+  min-height: 30px;
   cursor: pointer;
+}
+
+.me-fold {
+  transition: transform 0.2s ease;
+}
+
+.me-fold.open {
+  transform: rotate(180deg);
 }
 
 .me-strip .vital-text {
@@ -1123,9 +1143,10 @@
   color: var(--text-3);
 }
 
+/* Four across where there is room, two on a phone or beside a landscape map. */
 .clue-grid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(max(150px, calc((100% - 24px) / 4)), 1fr));
   gap: 8px;
 }
 
@@ -1955,16 +1976,63 @@
   color: var(--text-4);
 }
 
+/* Touch screens: fingers need bigger targets than pointers. */
+@media (pointer: coarse) {
+  .composer-top select {
+    min-height: 42px;
+    font-size: 16px;
+  }
+
+  .quick button {
+    height: 36px;
+    padding: 0 13px;
+    font-size: 13px;
+  }
+
+  .clue .seat {
+    position: relative;
+    width: 26px;
+    height: 26px;
+    font-size: 12px;
+  }
+
+  .clue .seat::after {
+    content: '';
+    position: absolute;
+    inset: -7px;
+  }
+
+  .coach .icon-btn {
+    width: 40px;
+    height: 40px;
+    margin: -8px -2px -8px 0;
+  }
+
+  .tab {
+    height: 42px;
+  }
+}
+
 /* -------------------------------------------------------------- phones */
+
+/* One scrolling column: the island, who you are, then this phase's decision
+   right under them. The game bar sticks to the top and the dock to the bottom. */
 
 .play-narrow {
   --dock-h: 70px;
   min-height: 100dvh;
-  padding-bottom: calc(var(--dock-h) + env(safe-area-inset-bottom));
+  /* Never pan sideways mid-match, whatever overflows. */
+  overflow-x: clip;
+  padding: 0 env(safe-area-inset-right) calc(var(--dock-h) + env(safe-area-inset-bottom)) env(safe-area-inset-left);
 }
 
 :root:has(.play-narrow) {
   --dock-h: 70px;
+}
+
+/* Pulling down mid-match should not reload the page. */
+:root:has(main.play) {
+  overscroll-behavior-y: none;
 }
 
 .play-narrow > .gamebar {
@@ -1985,16 +2053,17 @@
 }
 
 .play-narrow .map-stage {
-  aspect-ratio: 4 / 3;
   width: 100%;
   min-height: 0;
-  max-height: 62vh;
+  /* Tall enough to read the island, short enough that the decision fits below it. */
+  height: min(72vw, 44vh);
+  height: min(72vw, 44svh);
 }
 
 .play-narrow .tab-view {
   display: grid;
   align-content: start;
-  gap: 12px;
+  gap: 8px;
   padding: 12px 12px 16px;
 }
 
@@ -2005,6 +2074,12 @@
 .play-narrow .tab-view.map-view > .map-stage {
   margin: 0 -12px;
   width: auto;
+}
+
+.play-narrow .tab-view > :not(.map-stage) {
+  width: 100%;
+  max-width: 760px;
+  margin-inline: auto;
 }
 
 .play-narrow .chat-view,
@@ -2027,61 +2102,203 @@
   background: transparent;
 }
 
+/* While typing, the dock steps aside for the keyboard. */
+.typing .play-narrow {
+  --dock-h: 0px;
+}
+
+.typing .play-narrow .dock,
+.typing .play-narrow .quick,
+.typing .play-narrow .composer-foot > span:first-child {
+  display: none;
+}
+
+.typing .play-narrow .composer-foot {
+  justify-content: flex-end;
+}
+
 .play-narrow .roster {
   padding: 14px 6px 8px 12px;
 }
 
+/* who you are, in two lines */
+
+.play-narrow .me-strip {
+  grid-template-columns: 46px minmax(0, 1fr);
+  gap: 12px;
+  padding: 8px 12px 8px 10px;
+}
+
+.play-narrow .me-thumb {
+  width: 46px;
+  height: 46px;
+  border-radius: 13px;
+}
+
+.play-narrow .me-strip-main {
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 4px 14px;
+}
+
+.play-narrow .me-strip-title h2 {
+  font-size: 22px;
+}
+
+/* A small chip with a finger-sized hit area. */
+.play-narrow .me-strip-foot .chip {
+  position: relative;
+  min-height: 26px;
+}
+
+.play-narrow .me-strip-foot .chip::after {
+  content: '';
+  position: absolute;
+  inset: -9px -8px;
+}
+
+.play-narrow .me-strip-title small {
+  display: none;
+}
+
+.play-narrow .me-strip-vitals {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.play-narrow .me-strip .pips {
+  gap: 3px;
+}
+
+.play-narrow .me-strip .pips i {
+  min-width: 4px;
+}
+
+.play-narrow .me-strip-foot {
+  grid-column: 1 / -1;
+}
+
+/* the decision for this phase */
+
 .play-narrow .action-panel {
   overflow: visible;
-}
-
-.play-narrow .ap-head {
-  padding: 14px 14px 10px;
-}
-
-.play-narrow .ap-head h2 {
-  font-size: 26px;
+  background: none;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
 }
 
 .play-narrow .ap-body {
-  padding: 0 14px 14px;
+  gap: 10px;
+  padding: 2px 0 6px;
   overflow: visible;
 }
 
-.play-narrow .tab-view > :not(.map-stage) {
-  width: 100%;
-  max-width: 760px;
-  margin-inline: auto;
+/* Results that scroll into view stop clear of the game bar and the dock. */
+.play-narrow .round-log {
+  scroll-margin: calc(var(--bar-h) + 12px) 0 calc(var(--dock-h) + 12px);
 }
 
-@media (max-width: 559px) {
-  .clue-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .play-narrow .region-picker {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    row-gap: 12px;
-  }
-
-  .play-narrow .tile-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
+.ap-brief {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--text-3);
 }
 
-.play-narrow .region-tile {
-  padding: 9px 4px 6px;
+.ap-brief .icon {
+  flex: none;
+  margin-top: 2px;
+  color: var(--amber);
 }
 
-.play-narrow .region-tile .icon {
-  width: 18px;
-  height: 18px;
-  margin-bottom: 1px;
+.drop-pick {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px dashed var(--line-2);
+}
+
+.drop-pick.chosen {
+  background: rgba(130, 212, 199, 0.07);
+  border: 1px solid rgba(130, 212, 199, 0.36);
+}
+
+.dp-icon {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  color: var(--amber);
+  background: var(--amber-lo);
+}
+
+.drop-pick.chosen .dp-icon {
+  color: var(--teal);
+  background: rgba(130, 212, 199, 0.14);
+}
+
+.drop-pick b {
+  display: block;
+  font-size: 15px;
+}
+
+.drop-pick small {
+  display: block;
+  margin-top: 2px;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--text-3);
+}
+
+.play-narrow .coach {
+  padding: 8px 4px 8px 12px;
+}
+
+.play-narrow .coach p {
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+/* Choices stand upright in one row, so all of them fit under the island. */
+.play-narrow .tile-grid {
+  gap: 6px;
 }
 
 .play-narrow .tile {
-  min-height: 58px;
-  padding: 9px 10px;
+  grid-template-columns: minmax(0, 1fr);
+  justify-items: center;
+  align-content: start;
+  row-gap: 1px;
+  min-height: 0;
+  padding: 9px 6px 10px;
+  text-align: center;
+}
+
+.play-narrow .tile > .icon {
+  grid-row: auto;
+  margin-bottom: 3px;
+}
+
+.play-narrow .tile b {
+  max-width: 100%;
+  font-size: 14px;
+}
+
+.play-narrow .tile small {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  font-size: 11.5px;
+  line-height: 1.35;
 }
 
 .dock {
@@ -2091,7 +2308,7 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 8px 10px calc(8px + env(safe-area-inset-bottom));
+  padding: 8px max(10px, env(safe-area-inset-right)) calc(8px + env(safe-area-inset-bottom)) max(10px, env(safe-area-inset-left));
   background: rgba(9, 16, 18, 0.94);
   -webkit-backdrop-filter: blur(18px);
   backdrop-filter: blur(18px);
@@ -2149,7 +2366,63 @@
     width: 42px;
   }
 
-  .tile-grid .tile small {
+  /* The smallest phones keep the numbers and drop the bars. */
+  .play-narrow .me-strip .pips {
     display: none;
+  }
+
+  .play-narrow .tile b {
+    font-size: 13px;
+  }
+}
+
+/* Short phones: actions keep only their names, so all four fit above the dock. */
+@media (max-height: 620px) and (orientation: portrait) {
+  .play-narrow .phase-action .tile small {
+    display: none;
+  }
+}
+
+/* Landscape phones: the island stays on the left while the panel scrolls beside it. */
+@media (orientation: landscape) and (max-height: 559px) {
+  :root:has(.play-narrow),
+  .play-narrow {
+    --dock-h: 58px;
+  }
+
+  .play-narrow .tab-view.map-view {
+    grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+    align-items: start;
+    gap: 10px 14px;
+    padding: 10px 12px 14px 0;
+  }
+
+  .play-narrow .tab-view.map-view > .map-stage {
+    grid-row: 1 / span 2;
+    position: sticky;
+    top: calc(var(--bar-h) + 10px);
+    height: calc(100vh - var(--bar-h) - var(--dock-h) - 20px);
+    height: calc(100svh - var(--bar-h) - var(--dock-h) - env(safe-area-inset-bottom) - 20px);
+    margin: 0;
+    border-width: 1px 1px 1px 0;
+    border-radius: 0 var(--r-xl) var(--r-xl) 0;
+  }
+
+  .play-narrow .tab-view.map-view > :not(.map-stage) {
+    grid-column: 2;
+    max-width: none;
+  }
+
+  .dock {
+    padding-top: 6px;
+    padding-bottom: calc(6px + env(safe-area-inset-bottom));
+  }
+
+  .dock .btn.primary {
+    min-height: 44px;
+  }
+
+  .dock-tab {
+    padding: 3px 0 2px;
   }
 }
