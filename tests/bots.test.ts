@@ -4,7 +4,7 @@ import { REGIONS, species } from '../src/game/data';
 import { addPlayer, advance, applyCommand, createGame, startGame } from '../src/game/engine';
 import { botsAct, botsChat, botsDrop } from '../src/game/bots';
 import { chooseAction, chooseDrop, chooseFood, think } from '../src/game/bots/brain';
-import { parseStatement } from '../src/game/bots/language';
+import { PHRASES, parseStatement } from '../src/game/bots/language';
 import { newMemory } from '../src/game/bots/knowledge';
 import type { Game } from '../src/game/types';
 import { playerView } from '../src/game/view';
@@ -84,6 +84,31 @@ test('table talk is understood: claims, denials, plans, accusations and question
   assert.equal(parseStatement('你今晚去哪？', view).question, 'location');
   assert.equal(parseStatement('你觉得谁是狼？', view).question, 'suspect');
   assert.deepEqual(parseStatement('谁是狼？', view).accused, []);
+});
+
+test('every line a bot can say reads back the way it is meant', () => {
+  const g = soloAt('drop');
+  const view = playerView(g, 'human', NOW);
+  const other = g.players[2];
+  const x = `${other.seat}号${other.name}`;
+  const misread: string[] = [];
+  const check = (family: string, text: string, ok: (s: ReturnType<typeof parseStatement>) => boolean) => {
+    if (!ok(parseStatement(text, view))) misread.push(`${family}: ${text}`);
+  };
+  const claims = (s: ReturnType<typeof parseStatement>) => s.claim === 'snake';
+  const names = (s: ReturnType<typeof parseStatement>) => s.accused.includes(other.seat);
+  for (const f of [...PHRASES.claim, ...PHRASES.replyIdentity]) check('claim', f('游蛇'), claims);
+  for (const f of PHRASES.liar) check('liar', f(x, '游蛇'), s => claims(s) && names(s));
+  for (const f of [...PHRASES.accuse, ...PHRASES.suspect, ...PHRASES.replySuspect]) check('accuse', f(x), s => names(s) && !s.claim);
+  for (const f of [...PHRASES.plan, ...PHRASES.replyLocation]) check('plan', f('月影河谷'), s => s.region === 'river' && !s.claim);
+  // Nothing else may sound like the speaker claiming an identity.
+  for (const f of [...PHRASES.warn, ...PHRASES.ackPlanAvoid, ...PHRASES.ackPlanNote]) check('region', f('月影河谷'), s => !s.claim);
+  for (const f of [...PHRASES.mourn]) check('mourn', f(x, '游蛇'), s => !s.claim && !s.accused.length);
+  for (const f of PHRASES.saw) check('saw', f(x, '月影河谷'), s => !s.claim);
+  for (const f of [...PHRASES.ackPreyClaim, ...PHRASES.ackFriendClaim]) check('ack', f('游蛇'), s => !s.claim);
+  const plain = [...PHRASES.idle, ...PHRASES.replyDodge, ...PHRASES.replyNoPlan, ...PHRASES.replyNoSuspect, ...PHRASES.ackOther];
+  for (const text of [...plain, ...PHRASES.defend, ...PHRASES.opener]) check('plain', text, s => !s.claim && !s.accused.length);
+  assert.deepEqual(misread, []);
 });
 
 test('bots answer private questions in context', () => {
