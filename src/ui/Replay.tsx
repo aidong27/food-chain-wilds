@@ -21,7 +21,8 @@ export function Replay({ view }: { view: GameView }) {
       nights.findIndex(n => n.players.some(p => p.id === me.id && !p.alive)),
     ),
   );
-  if (!nights.length) return null;
+  // A match saved before 2.1 only started recording part-way; no replay beats a partial one shown as the whole story.
+  if (nights[0]?.round !== 1) return null;
   const night = nights[Math.min(index, nights.length - 1)];
   const bitten = new Set(night.hunts.map(h => h.prey));
   const deaths = view.log.filter(l => l.tag === 'death' && l.round === night.round);

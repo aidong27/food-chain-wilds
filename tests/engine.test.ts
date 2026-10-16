@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { REGIONS, SPECIES, phasesFor, species, type SpeciesId } from '../src/game/data';
+import { REGIONS, RULES, SPECIES, phasesFor, species, type SpeciesId } from '../src/game/data';
 import { abandonSeat, addPlayer, advance, applyCommand, createGame, removePlayer, startGame, tick } from '../src/game/engine';
 import { pay, resolveFood } from '../src/game/rules';
 import type { Game, Player } from '../src/game/types';
@@ -44,15 +44,59 @@ test('eight distinct animals and a full seven-round solo game', () => {
   assert.ok(steps <= 7 * phasesFor('solo').length);
 });
 
-test('solo practice skips the trace and call phases that need other people', () => {
+test('a night is talk-and-drop, act, eat, settle; solo skips the calls that need other people', () => {
   const g = solo('deer');
-  const seen = new Set<string>();
-  while (g.phase !== 'finished') {
-    seen.add(g.phase);
+  const seen: string[] = [];
+  while (g.round === 1) {
+    seen.push(g.phase);
     advance(g, NOW);
   }
-  assert.deepEqual([...seen].sort(), ['action', 'drop', 'food', 'settle', 'talk']);
+  assert.deepEqual(seen, ['drop', 'action', 'food', 'settle']);
   assert.equal(g.deadline, 0);
+  // The camp talks while everyone picks a start.
+  assert.ok(g.log.some(l => l.round === 2 && l.kind === 'public'));
+});
+
+test('spending both actions ends the action phase without a tap', () => {
+  const g = solo('deer');
+  const p = g.players[0];
+  cmd(g, p.id, { type: 'drop', region: 'forest' });
+  cmd(g, p.id, { type: 'ready' });
+  assert.equal(g.phase, 'action');
+  cmd(g, p.id, { type: 'hide' });
+  assert.equal(g.phase, 'action');
+  cmd(g, p.id, { type: 'skill' });
+  assert.equal(g.phase, 'food');
+  // Bots took their actions too, so the meal can see their traces.
+  assert.ok(playerView(g, p.id).traces.forest !== null);
+});
+
+test('online, the last person still deciding gets a short final countdown', () => {
+  const g = online(['a', 'b', 'c']);
+  const full = g.deadline;
+  assert.equal(full, NOW + 75_000);
+  cmd(g, 'a', { type: 'drop', region: 'forest' });
+  cmd(g, 'a', { type: 'ready' });
+  assert.equal(g.deadline, full, 'two people are still deciding');
+  cmd(g, 'b', { type: 'drop', region: 'river' });
+  cmd(g, 'b', { type: 'ready' });
+  assert.equal(g.deadline, NOW + RULES.lastCallSeconds * 1000);
+  cmd(g, 'c', { type: 'drop', region: 'meadow' });
+  cmd(g, 'c', { type: 'ready' });
+  assert.equal(g.phase, 'action');
+  assert.equal(g.deadline, NOW + 40_000);
+});
+
+test('voice opens only while the camp talks', () => {
+  const g = online(['a', 'b']);
+  cmd(g, 'a', { type: 'voice', joined: true });
+  assert.equal(g.players[0].voice, true);
+  cmd(g, 'a', { type: 'drop', region: 'forest' });
+  cmd(g, 'a', { type: 'ready' });
+  cmd(g, 'b', { type: 'drop', region: 'river' });
+  cmd(g, 'b', { type: 'ready' });
+  assert.equal(g.players[0].voice, false);
+  assert.throws(() => cmd(g, 'a', { type: 'voice', joined: true }), /阶段/);
 });
 
 test('region adjacency is symmetric, connected, and leaves regions out of sight', () => {
@@ -131,7 +175,7 @@ test('views do not leak other roles, hidden locations, choices, SP, HP, memories
   isolate(g);
   const p = g.players[0];
   p.location = 'forest';
-  g.phase = 'traces';
+  g.phase = 'food';
   g.players[1].location = 'ruins';
   g.traces = { ruins: ['secret-player'], river: ['visible-trace'] };
   const v = playerView(g, p.id, NOW);
@@ -150,7 +194,6 @@ test('views do not leak other roles, hidden locations, choices, SP, HP, memories
 
 test('initial placements stay secret until every human locks in', () => {
   const g = online(['a', 'b']);
-  advance(g, NOW);
   cmd(g, 'a', { type: 'drop', region: 'forest' });
   cmd(g, 'a', { type: 'ready' });
   assert.equal(g.phase, 'drop');
@@ -254,7 +297,7 @@ test('hunger runs in short cycles and food resets the cycle', () => {
 
 test('calls are ordered, require acceptance and consume both quotas', () => {
   const g = online(['a', 'b', 'c'], 2);
-  g.phase = 'traces';
+  g.phase = 'action';
   advance(g, NOW);
   assert.equal(g.phase, 'call');
   assert.equal(g.callIndex, 0);
@@ -264,7 +307,7 @@ test('calls are ordered, require acceptance and consume both quotas', () => {
   cmd(g, 'b', { type: 'call-answer', accept: true });
   assert.equal(g.players[0].called, true);
   assert.equal(g.players[1].called, true);
-  assert.ok(g.deadline >= NOW + 30_000);
+  assert.equal(g.deadline, NOW + RULES.callTalkSeconds * 1000);
   cmd(g, 'a', { type: 'hangup' });
   // Seat 3 has nobody left to call, so the phase moves straight on to food.
   assert.equal(g.phase, 'food');
@@ -272,7 +315,7 @@ test('calls are ordered, require acceptance and consume both quotas', () => {
 
 test('the call phase is skipped when fewer than two people can still call', () => {
   const g = online(['a'], 3);
-  g.phase = 'traces';
+  g.phase = 'action';
   advance(g, NOW);
   assert.equal(g.phase, 'food');
 });
@@ -364,10 +407,12 @@ test('leaving the lobby frees the seat and passes the host role; leaving a match
 
 test('deadlines advance online phases only once they pass', () => {
   const g = online(['a'], 4);
-  assert.equal(g.phase, 'talk');
+  assert.equal(g.phase, 'drop');
   assert.equal(tick(g, NOW + 1_000), false);
   assert.equal(tick(g, g.deadline + 1), true);
-  assert.equal(g.phase, 'drop');
+  assert.equal(g.phase, 'action');
+  // Nobody chose in time, so everyone was placed somewhere with food.
+  assert.ok(g.players.every(p => p.drop && g.resources[p.drop] > 0));
 });
 
 test('every role can finish full games without invalid numbers across seeded runs', () => {

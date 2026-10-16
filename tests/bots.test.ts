@@ -4,7 +4,7 @@ import { REGIONS, species } from '../src/game/data';
 import { addPlayer, advance, applyCommand, createGame, startGame } from '../src/game/engine';
 import { botsAct, botsChat, botsDrop } from '../src/game/bots';
 import { chooseAction, chooseDrop, chooseFood, think } from '../src/game/bots/brain';
-import { parseStatement } from '../src/game/bots/language';
+import { PHRASES, parseStatement } from '../src/game/bots/language';
 import { newMemory } from '../src/game/bots/knowledge';
 import type { Game } from '../src/game/types';
 import { playerView } from '../src/game/view';
@@ -70,7 +70,7 @@ test('bots act within the rules for many seeds', () => {
 });
 
 test('table talk is understood: claims, denials, plans, accusations and questions', () => {
-  const g = soloAt('talk');
+  const g = soloAt('drop');
   const view = playerView(g, 'human', NOW);
   const seat3 = g.players[2];
   assert.equal(parseStatement('我是麋鹿，别怕', view).claim, 'deer');
@@ -86,8 +86,33 @@ test('table talk is understood: claims, denials, plans, accusations and question
   assert.deepEqual(parseStatement('谁是狼？', view).accused, []);
 });
 
+test('every line a bot can say reads back the way it is meant', () => {
+  const g = soloAt('drop');
+  const view = playerView(g, 'human', NOW);
+  const other = g.players[2];
+  const x = `${other.seat}号${other.name}`;
+  const misread: string[] = [];
+  const check = (family: string, text: string, ok: (s: ReturnType<typeof parseStatement>) => boolean) => {
+    if (!ok(parseStatement(text, view))) misread.push(`${family}: ${text}`);
+  };
+  const claims = (s: ReturnType<typeof parseStatement>) => s.claim === 'snake';
+  const names = (s: ReturnType<typeof parseStatement>) => s.accused.includes(other.seat);
+  for (const f of [...PHRASES.claim, ...PHRASES.replyIdentity]) check('claim', f('游蛇'), claims);
+  for (const f of PHRASES.liar) check('liar', f(x, '游蛇'), s => claims(s) && names(s));
+  for (const f of [...PHRASES.accuse, ...PHRASES.suspect, ...PHRASES.replySuspect]) check('accuse', f(x), s => names(s) && !s.claim);
+  for (const f of [...PHRASES.plan, ...PHRASES.replyLocation]) check('plan', f('月影河谷'), s => s.region === 'river' && !s.claim);
+  // Nothing else may sound like the speaker claiming an identity.
+  for (const f of [...PHRASES.warn, ...PHRASES.ackPlanAvoid, ...PHRASES.ackPlanNote]) check('region', f('月影河谷'), s => !s.claim);
+  for (const f of [...PHRASES.mourn]) check('mourn', f(x, '游蛇'), s => !s.claim && !s.accused.length);
+  for (const f of PHRASES.saw) check('saw', f(x, '月影河谷'), s => !s.claim);
+  for (const f of [...PHRASES.ackPreyClaim, ...PHRASES.ackFriendClaim]) check('ack', f('游蛇'), s => !s.claim);
+  const plain = [...PHRASES.idle, ...PHRASES.replyDodge, ...PHRASES.replyNoPlan, ...PHRASES.replyNoSuspect, ...PHRASES.ackOther];
+  for (const text of [...plain, ...PHRASES.defend, ...PHRASES.opener]) check('plain', text, s => !s.claim && !s.accused.length);
+  assert.deepEqual(misread, []);
+});
+
 test('bots answer private questions in context', () => {
-  const g = soloAt('talk', 17);
+  const g = soloAt('drop', 17);
   const bot = g.players.find(p => p.bot && p.alive)!;
   const ask = (text: string) => {
     bot.privateCount = 0;
@@ -109,7 +134,7 @@ test('a bitten bot names its attacker the next morning', () => {
   let accusations = 0,
     bites = 0;
   for (let seed = 1; seed <= 30; seed++) {
-    const g = soloAt('talk', seed, 'wolf');
+    const g = soloAt('drop', seed, 'wolf');
     const wolf = g.players[0];
     const victim = g.players.find(p => p.bot && species(p.animal).diet === 'plant')!;
     victim.location = wolf.location = 'forest';
@@ -150,7 +175,7 @@ test('a lone person can still finish a game while bots chat, act and eat', () =>
 test('new memories start empty and personas vary', () => {
   const personas = new Set<number>();
   for (let seed = 1; seed <= 20; seed++) {
-    const g = soloAt('talk', seed);
+    const g = soloAt('drop', seed);
     for (const mem of Object.values(g.bots)) personas.add(mem.persona);
   }
   assert.equal(personas.size, 4);

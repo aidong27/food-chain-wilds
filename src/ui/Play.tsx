@@ -2,7 +2,7 @@ import type { ComponentChildren } from 'preact';
 import { useEffect, useState } from 'preact/hooks';
 import { RULES, phasesFor, region, species, type PhaseId } from '../game/data';
 import type { GameView } from '../game/view';
-import { toggleSound, urls, useApp } from '../client/store';
+import { getState, toggleSound, urls, useApp } from '../client/store';
 import { ActionPanel, PrimaryButton } from './ActionPanel';
 import {
   Chip,
@@ -467,9 +467,37 @@ function PhonePlay({ view }: { view: GameView }) {
   );
 }
 
+/**
+ * Keyboard play: Enter or Space presses the main button, 1–4 pick the choices in
+ * the panel. Ignored while typing, in dialogs and during the guided tutorial.
+ */
+function useShortcuts() {
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.ctrlKey || e.metaKey || e.altKey || e.repeat || getState().tutorial || document.querySelector('dialog[open]')) return;
+      const el = document.activeElement;
+      if (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement || el instanceof HTMLSelectElement) return;
+      let target: HTMLButtonElement | undefined;
+      if (e.key === 'Enter' || e.key === ' ') {
+        // A focused button already answers these keys itself.
+        if (el instanceof HTMLButtonElement || el instanceof HTMLAnchorElement) return;
+        target = [...document.querySelectorAll<HTMLButtonElement>('.ready-btn')].find(b => b.offsetParent);
+      } else if (/^[1-4]$/.test(e.key)) {
+        target = document.querySelectorAll<HTMLButtonElement>('.action-panel .tile-grid .tile')[Number(e.key) - 1];
+      }
+      if (!target || target.disabled) return;
+      e.preventDefault();
+      target.click();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
+}
+
 export function Play() {
   const { view, selected } = useApp();
   const layout = useLayout();
+  useShortcuts();
   const g = view!;
   if (layout === 'narrow') return <PhonePlay view={g} />;
   if (layout === 'medium')

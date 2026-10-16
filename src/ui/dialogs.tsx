@@ -1,6 +1,6 @@
 import type { ComponentChildren, JSX } from 'preact';
 import { Fragment } from 'preact';
-import { useEffect, useReducer, useRef } from 'preact/hooks';
+import { useEffect, useLayoutEffect, useReducer, useRef } from 'preact/hooks';
 import { RULES, SPECIES, predatorsOf, region, species, type Diet, type SpeciesId } from '../game/data';
 import { TUTORIAL_SEATS } from '../game/tutorial';
 import { getState, leave, markTutorial, send, startTutorial, toggleSound, useApp } from '../client/store';
@@ -40,7 +40,8 @@ export function DialogHost() {
 
 function Modal({ spec }: { spec: DialogSpec }) {
   const ref = useRef<HTMLDialogElement>(null);
-  useEffect(() => {
+  // Opened in the same task as the tap that asked for it, so Chrome lets the very first Esc close it.
+  useLayoutEffect(() => {
     const d = ref.current!;
     if (!d.open) d.showModal();
     const onClose = () => closeDialog();
@@ -119,7 +120,7 @@ function RulesBody() {
           </li>
           <li>
             <b>每回合</b>
-            <span>交流 → 秘密投放 → 2 次行动 → 获取食物 → 结算饥饿。</span>
+            <span>交流与投放 → 2 次行动 → 获取食物 → 天亮结算。</span>
           </li>
           <li>
             <b>看投放</b>
@@ -137,8 +138,8 @@ function RulesBody() {
           生命，体力恢复至上限的一半（向上取整），再支付本次 1 SP。若因此死亡，行动失败。
         </Rule>
         <Rule icon="round" title="回合流程">
-          交流 → 秘密投放 → 2 次行动 → 痕迹观察 → 依次通话 → 获取食物 →
-          饥饿结算。单人练习没有其他真人，跳过痕迹与通话两个阶段（痕迹在获取食物时查看），由你掌握节奏；联机全员准备或倒计时结束时推进。
+          交流与投放（边听营地发言边选起点）→ 2 次行动（用完自动结束）→ 依次通话（仅联机且有其他真人时）→ 获取食物（这时能看到身边的足迹）→
+          天亮结算。单人练习由你掌握节奏；联机时全员准备或倒计时结束就推进，其他人都准备好后，最后一位最多再等 {RULES.lastCallSeconds} 秒。
         </Rule>
         <Rule icon="move" title="痕迹与位置">
           投放在全员锁定后公开，之后的移动只在出发地与目的地留下足迹。你只能看到所在地区及相邻地区的足迹。躲藏会抹除当前地区的足迹，但挡不住捕食。足迹每回合清空。

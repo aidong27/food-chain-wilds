@@ -34,13 +34,13 @@ function dropsAt(view: GameView, id: RegionId) {
 export function WildsMap({ view, selected, home, cover }: Props) {
   const me = view?.me ?? null;
   const playing = !!view && !home && !!me && view.phase !== 'lobby';
-  const located = playing && view.phase !== 'talk' && view.phase !== 'drop';
+  const located = playing && view.phase !== 'drop';
   const tracesShown = playing && Object.values(view.traces).some(t => t !== null);
   const sight = located ? visibleRegions(me.location) : [];
   const moving = playing && view.phase === 'action' && me.alive && !me.ready && me.actions > 0;
   const dropping = playing && view.phase === 'drop' && me.alive;
   // A highlighted region only means something while choosing a place.
-  const choosing = playing && (view.phase === 'drop' || view.phase === 'action' || view.phase === 'traces');
+  const choosing = playing && (view.phase === 'drop' || view.phase === 'action');
   const caption = home || !view ? '七夜荒野 · 六处地区彼此相连' : view.event;
 
   return (

@@ -1,5 +1,5 @@
 /**
- * Game lifecycle: lobby, the seven-phase round loop and player commands.
+ * Game lifecycle: lobby, the round loop (talk and drop, act, call, eat, settle) and player commands.
  * The same engine runs inside the Cloudflare room, in the browser for solo
  * practice, and in tests.
  */
@@ -26,7 +26,7 @@ import { allowedFoods, fail, findPlayer, hide, leaveTrace, log, move, postMessag
 import type { Command, Game, Mode, NightRecord, Player } from './types';
 
 /** Stored games with another version are discarded instead of misread. */
-export const STATE_VERSION = 2;
+export const STATE_VERSION = 3;
 
 export function createGame(code: string, mode: Mode, seed = randomSeed(), now = Date.now()): Game {
   return {
@@ -192,7 +192,8 @@ function beginRound(g: Game, now: number) {
       called: false,
     });
   }
-  enterPhase(g, 'talk', now);
+  // Talking and choosing a start share one phase: the camp chatters while everyone picks.
+  enterPhase(g, 'drop', now);
   log(g, `第 ${g.round} 回合开始。${g.event}。`, { tag: 'round' });
   botsChat(g);
 }
@@ -210,9 +211,6 @@ function nextPhaseAfter(g: Game, phase: PhaseId): PhaseId {
 /** Ends the current phase: on deadline, when every living human is ready, or on demand in solo. */
 export function advance(g: Game, now = Date.now()) {
   switch (g.phase) {
-    case 'talk':
-      enterPhase(g, 'drop', now);
-      break;
     case 'drop':
       botsDrop(g);
       for (const p of g.players.filter(p => p.alive)) {
@@ -227,9 +225,6 @@ export function advance(g: Game, now = Date.now()) {
     case 'action':
       botsAct(g);
       enterOrSkip(g, nextPhaseAfter(g, 'action'), now);
-      break;
-    case 'traces':
-      enterOrSkip(g, 'call', now);
       break;
     case 'call':
       nextCaller(g, now, true);
@@ -320,6 +315,19 @@ function livingHumansReady(g: Game) {
   return g.players.filter(q => !q.bot && q.alive).every(q => q.ready);
 }
 
+/**
+ * Marks a seat done with the phase. The phase ends once every living person is;
+ * online, the last one still deciding gets a short final countdown instead of the full timer.
+ */
+function finishTurn(g: Game, p: Player, now: number) {
+  p.ready = true;
+  if (livingHumansReady(g)) return advance(g, now);
+  const waiting = g.players.filter(q => !q.bot && q.alive && !q.ready);
+  if (g.mode === 'online' && g.deadline && waiting.length === 1) {
+    g.deadline = Math.min(g.deadline, now + RULES.lastCallSeconds * 1000);
+  }
+}
+
 /** Applies a validated command from a human seat. */
 export function applyCommand(g: Game, playerId: string, cmd: Command, now = Date.now()) {
   const p = findPlayer(g, playerId);
@@ -354,8 +362,7 @@ export function applyCommand(g: Game, playerId: string, cmd: Command, now = Date
       }
       if (g.phase === 'drop' && p.alive && !p.drop) fail('请先选择投放地区。');
       if (g.phase === 'food' && p.alive && !p.food) fail('请先选择获取食物的方式。');
-      p.ready = true;
-      if (livingHumansReady(g)) advance(g, now);
+      finishTurn(g, p, now);
       return;
     }
   }
@@ -371,7 +378,7 @@ export function applyCommand(g: Game, playerId: string, cmd: Command, now = Date
       return;
     }
     case 'voice':
-      requirePhase(g, 'talk');
+      requirePhase(g, 'drop');
       p.voice = cmd.joined;
       return;
     case 'call': {
@@ -423,15 +430,17 @@ export function applyCommand(g: Game, playerId: string, cmd: Command, now = Date
     case 'move':
       if (!isAdjacent(p.location, cmd.region)) fail('只能移动到相邻地区。');
       move(g, p, cmd.region);
-      return;
+      break;
     case 'hide':
       hide(g, p);
-      return;
+      break;
     case 'scream':
       scream(g, p);
-      return;
+      break;
     case 'skill':
       useSkill(g, p, cmd.region);
-      return;
+      break;
   }
+  // With both actions spent there is nothing left to decide, so the night moves on without a tap.
+  if (p.alive && p.actions <= 0) finishTurn(g, p, now);
 }

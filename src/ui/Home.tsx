@@ -33,10 +33,10 @@ const DIFFICULTIES: { id: Difficulty; name: string; note: string }[] = [
 const DIET: Record<Diet, string> = { hunt: '捕食者', plant: '草食', scavenge: '食腐' };
 
 const STEPS = [
-  { phase: 'talk', name: '交流', text: '公开发言或私信试探。捕食者常常冒充草食动物。' },
-  { phase: 'drop', name: '秘密投放', text: '选一个起点。全员锁定后，所有人的投放同时公开。' },
-  { phase: 'action', name: '行动', text: '移动、躲藏、尖叫或使用技能，每次消耗 1 体力。' },
+  { phase: 'drop', name: '交流与投放', text: '听听营地里谁自称什么，再秘密选一个起点。全员锁定后，投放同时公开。' },
+  { phase: 'action', name: '行动', text: '移动、躲藏、尖叫或使用技能，每次消耗 1 体力。两次用完就进入进食。' },
   { phase: 'food', name: '获取食物', text: '捕食、采食或食腐。食物只恢复体力，从不恢复生命。' },
+  { phase: 'settle', name: '天亮结算', text: '看看今夜谁吃饱、谁被咬、谁倒下，再迎接下一夜。' },
 ] as const;
 
 const SERVER_TEXT = {

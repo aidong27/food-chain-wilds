@@ -9,7 +9,7 @@ export type RegionId = 'forest' | 'river' | 'cliff' | 'meadow' | 'shrub' | 'ruin
 export type SpeciesId = 'wolf' | 'fox' | 'lynx' | 'snake' | 'rabbit' | 'deer' | 'boar' | 'crow';
 export type FoodChoice = 'hunt' | 'forage' | 'scavenge' | 'skip';
 export type Diet = 'hunt' | 'plant' | 'scavenge';
-export type PhaseId = 'talk' | 'drop' | 'action' | 'traces' | 'call' | 'food' | 'settle';
+export type PhaseId = 'drop' | 'action' | 'call' | 'food' | 'settle';
 
 export interface Region {
   id: RegionId;
@@ -266,13 +266,16 @@ export const SPECIES: readonly Species[] = [
 ];
 
 export const PHASES: readonly PhaseInfo[] = [
-  { id: 'talk', name: '公共交流', seconds: 90, hint: '交换情报、试探身份。准备好可以提前结束。' },
-  { id: 'drop', name: '秘密投放', seconds: 40, hint: '在地图上选择本回合的初始地区。所有人锁定后，投放位置会公开。' },
-  { id: 'action', name: '自由行动', seconds: 60, hint: '本回合有 2 次行动。移动、技能、躲藏与尖叫各消耗 1 SP。' },
-  { id: 'traces', name: '观察痕迹', seconds: 25, hint: '只能查看当前位置和相邻地区的痕迹。足迹不等于实时位置。', skipInSolo: true },
-  { id: 'call', name: '私下通话', seconds: 30, hint: '按席位依次选择通话对象。双方接受后通话 30 秒，各消耗一次机会。', skipInSolo: true },
-  { id: 'food', name: '获取食物', seconds: 40, hint: '选择捕食、采食、食腐或放弃。锁定后按轮换顺序结算。' },
-  { id: 'settle', name: '生存结算', seconds: 15, hint: '食物只恢复体力。达到饥饿周期会失去生命，七回合后结算。' },
+  {
+    id: 'drop',
+    name: '交流与投放',
+    seconds: 75,
+    hint: '看看营地里谁说了什么，再选今晚的起点并锁定。所有人锁定后，投放会公开。',
+  },
+  { id: 'action', name: '自由行动', seconds: 40, hint: '本回合有 2 次行动。移动、技能、躲藏与尖叫各消耗 1 SP，用完自动进入下一步。' },
+  { id: 'call', name: '私下通话', seconds: 12, hint: '按席位依次选择通话对象。双方接受后通话 25 秒，各消耗一次机会。', skipInSolo: true },
+  { id: 'food', name: '获取食物', seconds: 25, hint: '看看身边的足迹，再决定捕食、采食、食腐或放弃。锁定后按轮换顺序结算。' },
+  { id: 'settle', name: '生存结算', seconds: 10, hint: '食物只恢复体力。达到饥饿周期会失去生命，七回合后结算。' },
 ];
 
 export const RULES = {
@@ -287,8 +290,10 @@ export const RULES = {
   bodyRounds: 2,
   /** Plant food on the map for rounds 1–7. */
   resourcesByRound: [4, 4, 3, 3, 3, 2, 2],
-  callChooseSeconds: 15,
-  callTalkSeconds: 30,
+  callChooseSeconds: 12,
+  callTalkSeconds: 25,
+  /** Once every other person is ready, the last one online gets at most this long. */
+  lastCallSeconds: 20,
   logLimit: 800,
   viewLogLimit: 240,
 } as const;

@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { REGIONS, species } from '../src/game/data';
 import { addPlayer, advance, applyCommand, createGame, startGame } from '../src/game/engine';
+import { tutorialStepFrom2 } from '../src/client/links';
 import { TUTORIAL_SEATS, createTutorialGame } from '../src/game/tutorial';
 import type { Game } from '../src/game/types';
 import { playerView } from '../src/game/view';
@@ -41,7 +42,7 @@ test('the tutorial wolf follows the player, finds them with alertness, and bites
   const reply = g.log.find(l => l.kind === 'private' && l.from === wolf.id && l.to === ME);
   assert.ok(reply?.text.includes('野兔'), reply?.text);
 
-  cmd(g, { type: 'ready' });
+  // The camp talks during the drop itself.
   assert.equal(g.phase, 'drop');
   cmd(g, { type: 'drop', region: 'meadow' });
   cmd(g, { type: 'ready' });
@@ -60,7 +61,7 @@ test('the tutorial wolf follows the player, finds them with alertness, and bites
     'alertness senses the wolf',
   );
   cmd(g, { type: 'move', region: 'river' });
-  cmd(g, { type: 'ready' });
+  // Both actions are spent, so the night moves on by itself.
   assert.equal(g.phase, 'food');
   assert.equal(wolf.location, 'meadow', 'scripted bots stay put');
   cmd(g, { type: 'food', choice: 'forage' });
@@ -131,6 +132,44 @@ test('normal matches are unscripted', () => {
   addPlayer(g, 'a', '甲');
   startGame(g, undefined, NOW);
   assert.equal(g.script, undefined);
-  advance(g, NOW);
   assert.equal(g.phase, 'drop');
+  advance(g, NOW);
+  assert.equal(g.phase, 'action');
+});
+
+test('tutorial progress saved by 2.2 resumes at the same lesson', () => {
+  // The steps of src/ui/Tutorial.tsx in 2.2; 2.3 dropped "to-drop" and "end-action".
+  const before = [
+    'welcome',
+    'you',
+    'liar',
+    'ask',
+    'reply',
+    'to-drop',
+    'drop',
+    'lock',
+    'reveal',
+    'alert',
+    'danger',
+    'escape',
+    'move',
+    'end-action',
+    'traces',
+    'forage',
+    'lock-food',
+    'report',
+    'next-night',
+    'accused',
+    'mark',
+    'own',
+    'hint-drop',
+    'hint-action',
+    'hint-food',
+    'finale',
+  ];
+  const now = before.filter(id => id !== 'to-drop' && id !== 'end-action');
+  before.forEach((id, i) => {
+    const next = { 'to-drop': 'drop', 'end-action': 'traces' }[id] ?? id;
+    assert.equal(now[tutorialStepFrom2(i)], next, id);
+  });
 });

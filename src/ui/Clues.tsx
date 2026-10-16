@@ -27,7 +27,7 @@ export function ClueBoard({ view }: { view: GameView }) {
       </header>
       <ul class="clue-grid">
         {rows.map(({ s, holder, claimants, guessed, state }) => (
-          <li key={s.id} class={`clue ${state} ${holder?.id === me.id ? 'mine' : ''}`}>
+          <li key={s.id} class={`clue-card ${state} ${holder?.id === me.id ? 'mine' : ''}`}>
             <Portrait animal={s.id} face class="clue-face" />
             <div class="clue-body">
               <b>{s.name}</b>

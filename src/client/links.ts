@@ -50,9 +50,24 @@ const HUMAN = 'you';
 
 export function savedSolo(): SavedSolo | null {
   const saved = readJson<SavedSolo>('local', KEYS.solo);
+  if (saved?.v === 2 && saved.game?.version === 2) upgradeFrom2(saved);
   if (!saved || saved.v !== STATE_VERSION || saved.game?.version !== STATE_VERSION) return null;
   return saved;
 }
+
+/** Before 2.3 a solo night opened with a separate talk phase; talking now happens while choosing a start. */
+function upgradeFrom2(saved: SavedSolo) {
+  const game = saved.game as Omit<Game, 'phase'> & { phase: string };
+  if (game.phase === 'talk') game.phase = 'drop';
+  if (typeof saved.tutorial === 'number') saved.tutorial = tutorialStepFrom2(saved.tutorial);
+  saved.v = game.version = STATE_VERSION;
+}
+
+/**
+ * Where a tutorial step saved by 2.2 is now. 2.3 removed step 5 ("end the talk")
+ * and step 13 ("end your actions"); a removed step resumes at the one after it.
+ */
+export const tutorialStepFrom2 = (step: number) => step - (step > 13 ? 2 : step > 5 ? 1 : 0);
 
 export class LocalLink implements Link {
   readonly kind = 'local';
@@ -172,7 +187,7 @@ export class LocalLink implements Link {
     this.known = this.game.serial;
     if (!fresh.length) return;
     this.pending.push(...fresh.map(l => l.id));
-    if (!this.timer) this.revealNext(450);
+    if (!this.timer) this.revealNext(250);
   }
 
   private revealNext(delay: number) {
@@ -180,7 +195,7 @@ export class LocalLink implements Link {
       this.pending.shift();
       this.publish();
       this.timer = 0;
-      if (this.pending.length) this.revealNext(550 + Math.random() * 500);
+      if (this.pending.length) this.revealNext(350 + Math.random() * 350);
     }, delay);
   }
 

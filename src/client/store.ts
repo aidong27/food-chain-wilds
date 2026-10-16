@@ -124,7 +124,7 @@ let bannerTimer = 0;
 function showBanner(kind: Banner['kind'], title: string, detail: string) {
   clearTimeout(bannerTimer);
   set({ banner: { id: Date.now(), kind, title, detail } });
-  bannerTimer = window.setTimeout(() => set({ banner: null }), kind === 'night' ? 1700 : 1300);
+  bannerTimer = window.setTimeout(() => set({ banner: null }), kind === 'night' ? 1400 : 1100);
 }
 
 let flashTimer = 0;
@@ -156,7 +156,7 @@ function noticeChanges(before: GameView | null, after: GameView) {
     if (after.me) set({ selected: after.me.location });
     if (after.phase !== 'lobby' && after.phase !== 'finished') {
       const info = phaseInfo(after.phase as PhaseId);
-      if (after.phase === 'talk') showBanner('night', `第 ${after.round} 回合`, after.event);
+      if (before?.round !== after.round) showBanner('night', `第 ${after.round} 回合`, after.event);
       else showBanner('phase', info.name, info.hint);
     } else {
       clearTimeout(bannerTimer);
@@ -170,6 +170,17 @@ function noticeChanges(before: GameView | null, after: GameView) {
     }
     if (before) play('phase');
   }
+  // Online, once everyone else is ready the last person's timer is cut short; say why.
+  const hurried =
+    before &&
+    phaseKey(before) === phaseKey(after) &&
+    after.mode === 'online' &&
+    after.phase !== 'call' &&
+    after.me?.alive &&
+    !after.me.ready &&
+    after.deadline &&
+    after.deadline < before.deadline - 5000;
+  if (hurried) toast(`其他人都准备好了，还剩 ${Math.max(1, Math.round((after.deadline - after.now) / 1000))} 秒。`);
   const lastSeen = before?.log.at(-1)?.id ?? Infinity;
   const fresh: ViewEntry[] = before ? after.log.filter(l => l.id > lastSeen) : [];
   const me = after.me?.id;

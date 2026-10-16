@@ -789,7 +789,7 @@ textarea:disabled {
   padding: 28px 24px 30px;
   text-align: center;
   background: linear-gradient(90deg, transparent, rgba(8, 14, 16, 0.9) 22%, rgba(8, 14, 16, 0.9) 78%, transparent);
-  animation: banner 1.6s ease both;
+  animation: banner 1.3s ease both;
 }
 
 .phase-banner .icon {
@@ -848,7 +848,7 @@ textarea:disabled {
   box-shadow:
     var(--shadow-2),
     0 0 30px rgba(243, 182, 94, 0.16);
-  animation: pill 1.3s ease both;
+  animation: pill 1.05s ease both;
 }
 
 .phase-pill .icon {
