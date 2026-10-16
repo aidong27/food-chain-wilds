@@ -5,7 +5,10 @@
 import { REGIONS, RULES, region, type RegionId, type SpeciesId } from './data';
 import type { Body, Call, Difficulty, Entry, Game, Mode, NightRecord, Player, Stage } from './types';
 
-/** Raised whenever mixed versions could not play together, including rule changes the client displays (3: rabbit hunger in 2.1). */
+/**
+ * Raised whenever mixed versions could not play together, including rule changes the client displays
+ * (3: rabbit hunger from 2.1 and the shorter round of 2.3, where talk and drop share a phase).
+ */
 export const PROTOCOL_VERSION = 3;
 
 export interface PlayerSummary {
@@ -56,7 +59,8 @@ export interface GameView {
   history: NightRecord[] | null;
 }
 
-const TRACE_STAGES: Stage[] = ['traces', 'call', 'food', 'settle', 'finished'];
+/** Traces appear once everyone has moved: from the calls (online) or the meal (solo) onwards. */
+const TRACE_STAGES: Stage[] = ['call', 'food', 'settle', 'finished'];
 
 export function visibleRegions(location: RegionId): RegionId[] {
   return [location, ...region(location).adjacent];
@@ -68,7 +72,7 @@ export function playerView(g: Game, id: string, now = Date.now()): GameView {
   const finished = g.phase === 'finished';
   const visible = me && started ? visibleRegions(me.location) : [];
   const showTraces = TRACE_STAGES.includes(g.phase);
-  const dropsPublic = !['lobby', 'talk', 'drop'].includes(g.phase);
+  const dropsPublic = !['lobby', 'drop'].includes(g.phase);
   return {
     protocol: PROTOCOL_VERSION,
     code: g.code,

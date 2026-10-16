@@ -189,7 +189,7 @@ export class GameRoom extends DurableObject<Env> {
   private relaySignal(game: Game, from: string, target: unknown, signal: unknown) {
     const p = game.players.find(q => q.id === from);
     const q = game.players.find(r => r.id === target);
-    const inCamp = game.phase === 'talk' && p?.voice && q?.voice;
+    const inCamp = game.phase === 'drop' && p?.voice && q?.voice;
     const call = game.call;
     const inCall =
       game.phase === 'call' &&

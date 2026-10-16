@@ -124,7 +124,7 @@ let bannerTimer = 0;
 function showBanner(kind: Banner['kind'], title: string, detail: string) {
   clearTimeout(bannerTimer);
   set({ banner: { id: Date.now(), kind, title, detail } });
-  bannerTimer = window.setTimeout(() => set({ banner: null }), kind === 'night' ? 1700 : 1300);
+  bannerTimer = window.setTimeout(() => set({ banner: null }), kind === 'night' ? 1400 : 1100);
 }
 
 let flashTimer = 0;
@@ -156,7 +156,7 @@ function noticeChanges(before: GameView | null, after: GameView) {
     if (after.me) set({ selected: after.me.location });
     if (after.phase !== 'lobby' && after.phase !== 'finished') {
       const info = phaseInfo(after.phase as PhaseId);
-      if (after.phase === 'talk') showBanner('night', `第 ${after.round} 回合`, after.event);
+      if (before?.round !== after.round) showBanner('night', `第 ${after.round} 回合`, after.event);
       else showBanner('phase', info.name, info.hint);
     } else {
       clearTimeout(bannerTimer);

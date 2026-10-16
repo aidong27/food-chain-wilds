@@ -70,7 +70,7 @@ test('bots act within the rules for many seeds', () => {
 });
 
 test('table talk is understood: claims, denials, plans, accusations and questions', () => {
-  const g = soloAt('talk');
+  const g = soloAt('drop');
   const view = playerView(g, 'human', NOW);
   const seat3 = g.players[2];
   assert.equal(parseStatement('我是麋鹿，别怕', view).claim, 'deer');
@@ -87,7 +87,7 @@ test('table talk is understood: claims, denials, plans, accusations and question
 });
 
 test('bots answer private questions in context', () => {
-  const g = soloAt('talk', 17);
+  const g = soloAt('drop', 17);
   const bot = g.players.find(p => p.bot && p.alive)!;
   const ask = (text: string) => {
     bot.privateCount = 0;
@@ -109,7 +109,7 @@ test('a bitten bot names its attacker the next morning', () => {
   let accusations = 0,
     bites = 0;
   for (let seed = 1; seed <= 30; seed++) {
-    const g = soloAt('talk', seed, 'wolf');
+    const g = soloAt('drop', seed, 'wolf');
     const wolf = g.players[0];
     const victim = g.players.find(p => p.bot && species(p.animal).diet === 'plant')!;
     victim.location = wolf.location = 'forest';
@@ -150,7 +150,7 @@ test('a lone person can still finish a game while bots chat, act and eat', () =>
 test('new memories start empty and personas vary', () => {
   const personas = new Set<number>();
   for (let seed = 1; seed <= 20; seed++) {
-    const g = soloAt('talk', seed);
+    const g = soloAt('drop', seed);
     for (const mem of Object.values(g.bots)) personas.add(mem.persona);
   }
   assert.equal(personas.size, 4);

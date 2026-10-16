@@ -11,7 +11,7 @@ import {
   type PhaseId,
   type SpeciesId,
 } from '../game/data';
-import { visibleRegions, type GameView, type ViewEntry } from '../game/view';
+import type { GameView, ViewEntry } from '../game/view';
 import { answerCall, dismissCoach, joinVoice, send, skipToEnd, useApp } from '../client/store';
 import { ClueBoard } from './Clues';
 import { Chip, PlayerFace, entryTone, focusTab, numeral, playerById, seatName, type Layout } from './common';
@@ -24,8 +24,6 @@ function readyLabel(view: GameView, short = false): string {
   if (!p.alive) return '继续观战';
   if (p.ready) return short ? '已准备' : '已准备 · 等待其他玩家';
   switch (view.phase) {
-    case 'talk':
-      return view.mode === 'solo' ? '前往投放' : '我准备好了';
     case 'drop':
       return '锁定投放';
     case 'action':
@@ -33,6 +31,7 @@ function readyLabel(view: GameView, short = false): string {
     case 'call':
       return '跳过通话';
     case 'food':
+      if (!p.food) return `${foodName(suggestedFood(view), p.animal)}并锁定`;
       return short ? '锁定进食' : '锁定食物行动';
     case 'settle':
       if (view.round >= RULES.rounds) return '查看最终结算';
@@ -47,7 +46,22 @@ function readyBlocked(view: GameView, connected: boolean): boolean {
   if (!connected) return true;
   if (view.phase === 'call') return view.players[view.callIndex]?.id !== p.id || !!view.call;
   if (!p.alive) return false;
-  return p.ready || (view.phase === 'drop' && !p.drop) || (view.phase === 'food' && !p.food);
+  return p.ready || (view.phase === 'drop' && !p.drop);
+}
+
+/** The obvious meal where you stand, so locking in takes one tap; any tile chosen first wins. */
+export function suggestedFood(view: GameView): FoodChoice {
+  const p = view.me!;
+  const s = species(p.animal);
+  if (s.foods.includes('scavenge') && view.bodies.some(b => b.location === p.location)) return 'scavenge';
+  if (s.foods.includes('forage') && view.resources[p.location] > 0) return 'forage';
+  return s.foods.includes('hunt') ? 'hunt' : 'skip';
+}
+
+function ready(view: GameView) {
+  const p = view.me!;
+  if (view.phase === 'food' && p.alive && !p.food) send({ type: 'food', choice: suggestedFood(view) });
+  send({ type: 'ready' });
 }
 
 export function PrimaryButton({ view, short }: { view: GameView; short?: boolean }) {
@@ -59,7 +73,7 @@ export function PrimaryButton({ view, short }: { view: GameView; short?: boolean
       class={`btn primary ${short ? '' : 'large'} ready-btn`}
       data-tut="ready"
       disabled={readyBlocked(view, connected)}
-      onClick={() => send({ type: 'ready' })}
+      onClick={() => ready(view)}
     >
       {waiting && <Icon name="check" size={18} />}
       <span>{readyLabel(view, short)}</span>
@@ -74,6 +88,7 @@ function Tile({
   note,
   tone = '',
   chosen,
+  suggested,
   disabled,
   action,
   onClick,
@@ -83,13 +98,15 @@ function Tile({
   note: string;
   tone?: string;
   chosen?: boolean;
+  /** What the main button picks if you lock in without choosing. */
+  suggested?: boolean;
   disabled?: boolean;
   action: string;
   onClick: () => void;
 }) {
   return (
     <button
-      class={`tile ${chosen ? 'chosen' : ''}`}
+      class={`tile ${chosen ? 'chosen' : ''} ${suggested ? 'suggested' : ''}`}
       data-action={action}
       data-tut={action}
       disabled={disabled}
@@ -99,6 +116,7 @@ function Tile({
       <Icon name={icon} size={22} />
       <b>{title}</b>
       <small class={tone}>{note}</small>
+      {suggested && <span class="tile-tag">默认</span>}
     </button>
   );
 }
@@ -168,7 +186,8 @@ function VoiceCard({ view }: { view: GameView }) {
   );
 }
 
-function TalkControls({ view, layout }: { view: GameView; layout: Layout }) {
+/** Talk happens while everyone picks a start: the clue board and the latest voices sit under the choice. */
+function Camp({ view, layout }: { view: GameView; layout: Layout }) {
   const p = view.me!;
   const { unreadChat } = useApp();
   // The wide layout already shows the whole conversation beside the map.
@@ -176,7 +195,6 @@ function TalkControls({ view, layout }: { view: GameView; layout: Layout }) {
   return (
     <div class="camp">
       {view.mode === 'online' && <VoiceCard view={view} />}
-      <ClueBoard view={view} />
       {latest.length > 0 && (
         <ul class="quotes" aria-label="最新发言">
           {latest.map(l => {
@@ -196,12 +214,6 @@ function TalkControls({ view, layout }: { view: GameView; layout: Layout }) {
           })}
         </ul>
       )}
-      <p class="camp-intro">
-        <Icon name="camp" size={18} />
-        <span>
-          <b>捕食者常冒充草食动物。</b>被咬的居民会当众指认凶手，死者的身份会揭穿冒名者。
-        </span>
-      </p>
       {layout !== 'wide' && (
         <div class="ap-row">
           <button class="btn ghost" onClick={() => focusTab('chat')}>
@@ -210,6 +222,15 @@ function TalkControls({ view, layout }: { view: GameView; layout: Layout }) {
             {unreadChat > 0 && <span class="badge">{unreadChat}</span>}
           </button>
         </div>
+      )}
+      <ClueBoard view={view} />
+      {view.round <= 2 && (
+        <p class="camp-intro">
+          <Icon name="camp" size={18} />
+          <span>
+            <b>捕食者常冒充草食动物。</b>被咬的居民会当众指认凶手，死者的身份会揭穿冒名者。
+          </span>
+        </p>
       )}
     </div>
   );
@@ -222,19 +243,22 @@ function DropControls({ view, layout }: { view: GameView; layout: Layout }) {
   // On phones the map right above is the picker; wider screens also get six large buttons.
   if (layout === 'narrow')
     return (
-      <div class={`drop-pick ${chosen ? 'chosen' : ''}`} aria-live="polite">
-        <span class="dp-icon">
-          <Icon name={chosen ? regionIcon(chosen.id) : 'tap'} size={20} />
-        </span>
-        <p>
-          <b>{chosen ? `投放到${chosen.name}` : '点地图上的地区，选今晚的起点'}</b>
-          <small>
-            {chosen
-              ? `${food ? `${food} 份食物` : '没有食物'} · ${chosen.description}${p.ready ? '' : '锁定前可以随时更改。'}`
-              : '有食物（绿叶）的地区容易吃饱，也更容易遇到捕食者。'}
-          </small>
-        </p>
-      </div>
+      <>
+        <div class={`drop-pick ${chosen ? 'chosen' : ''}`} aria-live="polite">
+          <span class="dp-icon">
+            <Icon name={chosen ? regionIcon(chosen.id) : 'tap'} size={20} />
+          </span>
+          <p>
+            <b>{chosen ? `投放到${chosen.name}` : '点地图上的地区，选今晚的起点'}</b>
+            <small>
+              {chosen
+                ? `${food ? `${food} 份食物` : '没有食物'} · ${chosen.description}${p.ready ? '' : '锁定前可以随时更改。'}`
+                : '有食物（绿叶）的地区容易吃饱，也更容易遇到捕食者。'}
+            </small>
+          </p>
+        </div>
+        <Camp view={view} layout={layout} />
+      </>
     );
   return (
     <>
@@ -249,6 +273,7 @@ function DropControls({ view, layout }: { view: GameView; layout: Layout }) {
           '点地图或上方地区，选一个本回合的起点。有食物的地区容易吃饱，也更容易遇到捕食者。'
         )}
       </p>
+      <Camp view={view} layout={layout} />
     </>
   );
 }
@@ -256,7 +281,7 @@ function DropControls({ view, layout }: { view: GameView; layout: Layout }) {
 const ACTION_TAGS = new Set(['move', 'hide', 'skill', 'scream', 'overdraw']);
 
 /** What your actions turned up this round, newest first, right where you took them. */
-function RoundLog({ view, follow }: { view: GameView; follow: boolean }) {
+function RoundLog({ view, follow = false }: { view: GameView; follow?: boolean }) {
   const entries = view.log.filter(l => l.round === view.round && l.tag && ACTION_TAGS.has(l.tag)).slice(-3);
   const list = useRef<HTMLUListElement>(null);
   const newest = entries.at(-1)?.id;
@@ -369,51 +394,6 @@ function ActionControls({ view, layout }: { view: GameView; layout: Layout }) {
   );
 }
 
-function TraceControls({ view }: { view: GameView }) {
-  const p = view.me!;
-  const sight = visibleRegions(p.location);
-  const ordered = [...sight, ...REGIONS.map(r => r.id).filter(id => !sight.includes(id))];
-  return (
-    <>
-      <ul class="list-rows">
-        {ordered.map(id => {
-          const traces = view.traces[id];
-          const others = traces?.filter(t => t !== p.id) ?? [];
-          return (
-            <li key={id} class={traces === null ? 'dim' : ''}>
-              <Icon name={regionIcon(id)} size={18} />
-              <span>
-                <b>{region(id).name}</b>
-                {id === p.location ? ' · 你在这里' : ''}
-                <br />
-                <small class="muted">
-                  {traces === null
-                    ? '超出视野'
-                    : others.length
-                      ? `${others.map(t => seatName(view, t)).join('、')} 曾经过`
-                      : traces.length
-                        ? '只有你自己的足迹'
-                        : '没有足迹'}
-                </small>
-              </span>
-              {others.length > 0 && (
-                <span class="seats">
-                  {others.map(t => (
-                    <span key={t} class="seat">
-                      {playerById(view, t)?.seat}
-                    </span>
-                  ))}
-                </span>
-              )}
-            </li>
-          );
-        })}
-      </ul>
-      <p class="ap-note">足迹不等于实时位置；躲藏、伏击与疾跃都会抹除足迹。</p>
-    </>
-  );
-}
-
 function CallControls({ view }: { view: GameView }) {
   const p = view.me!;
   const caller = view.players[view.callIndex];
@@ -474,6 +454,9 @@ function CallControls({ view }: { view: GameView }) {
 
 const FOOD_NAME: Record<FoodChoice, string> = { hunt: '捕食', forage: '采食', scavenge: '食腐', skip: '放弃进食' };
 
+/** Hunters that forage are catching small prey, not grazing. */
+const foodName = (c: FoodChoice, animal: SpeciesId) => (c === 'forage' && species(animal).diet === 'hunt' ? '小型猎物' : FOOD_NAME[c]);
+
 function HuntTargets({ view, choose }: { view: GameView; choose: (choice: FoodChoice, target: string) => void }) {
   const p = view.me!;
   const here = p.location;
@@ -532,8 +515,10 @@ function FoodControls({ view }: { view: GameView }) {
   };
   const choose = (choice: FoodChoice, target = p.target) =>
     send({ type: 'food', choice, target: choice === 'hunt' ? target || undefined : undefined });
+  const suggested = p.food ? null : suggestedFood(view);
   return (
     <>
+      <RoundLog view={view} />
       <div class="ap-row">
         <Chip icon={regionIcon(here)} tone="teal">
           {region(here).name}
@@ -558,10 +543,11 @@ function FoodControls({ view }: { view: GameView }) {
               key={c}
               action={`food-${c}`}
               icon={foodIcon(c, p.animal)}
-              title={c === 'forage' && s.diet === 'hunt' ? '小型猎物' : FOOD_NAME[c]}
+              title={foodName(c, p.animal)}
               note={text}
               tone={tone}
               chosen={p.food === c}
+              suggested={c === suggested}
               disabled={p.ready}
               onClick={() => choose(c)}
             />
@@ -653,10 +639,9 @@ export function NightReport({ view }: { view: GameView }) {
 }
 
 const TIPS: Partial<Record<PhaseId, string>> = {
-  talk: '营地里有人在撒谎：线索板会标出撞了身份的居民。可以私信电脑居民提问，也可以点开任何居民，记下你对 Ta 身份的推理。',
-  drop: '选一个有食物的地区作为本回合起点，再锁定投放。所有人锁定后，投放会公开。',
-  action: '地图上的数字是其他居民的投放席位。和可疑的居民挤在一起？选一个带虚线圈的相邻地区移动，或使用技能。',
-  food: '草食动物在有食物的地区采食；捕食者只能吃同一地区、食谱里的动物。选好后锁定。',
+  drop: '营地里有人在撒谎：线索板会标出撞了身份的居民，点席位可以记下推理。看完发言，选一个有食物的地区作为起点，再锁定投放。',
+  action: '地图上的数字是其他居民的投放席位。和可疑的居民挤在一起？选一个带虚线圈的相邻地区移动，或使用技能。两次行动用完会自动进入进食。',
+  food: '草食动物在有食物的地区采食；捕食者只能吃同一地区、食谱里的动物。标着「默认」的是直接锁定时的选择。',
   settle: '这是今夜的结算。注意饥饿：连续不进食会开始失去生命，而食物只恢复体力。',
 };
 
@@ -688,23 +673,17 @@ function CoachTip({ view }: { view: GameView }) {
 }
 
 /** Phases whose controls do not explain themselves on a phone without the panel heading. */
-const BRIEF = new Set<PhaseId>(['traces', 'call']);
+const BRIEF = new Set<PhaseId>(['call']);
 
 export function ActionPanel({ view, layout }: { view: GameView; layout: Layout }) {
   const docked = layout === 'narrow';
   const p = view.me!;
   const phase = view.phase as PhaseId;
   const info = phaseInfo(phase);
-  const hint = !p.alive
-    ? '你已进入观战：只能看到自己倒下前所在位置的局部线索。'
-    : view.mode === 'solo' && phase === 'food'
-      ? '看看身边的足迹，再决定捕食、采食、食腐或放弃。'
-      : info.hint;
+  const hint = !p.alive ? '你已进入观战：只能看到自己倒下前所在位置的局部线索。' : info.hint;
   const controls = {
-    talk: <TalkControls view={view} layout={layout} />,
     drop: <DropControls view={view} layout={layout} />,
     action: <ActionControls view={view} layout={layout} />,
-    traces: <TraceControls view={view} />,
     call: <CallControls view={view} />,
     food: <FoodControls view={view} />,
     settle: <NightReport view={view} />,
@@ -717,8 +696,7 @@ export function ActionPanel({ view, layout }: { view: GameView; layout: Layout }
   );
   if (docked) {
     // Phones: the game bar already names the phase, so the decision sits right under the map
-    // and the beginner tip waits below it (except while talking, where it explains the board).
-    const tipFirst = phase === 'talk';
+    // and the beginner tip waits below it.
     return (
       <section class={`card action-panel docked phase-${phase}`} aria-label={info.name}>
         <div class="ap-body">
@@ -728,9 +706,8 @@ export function ActionPanel({ view, layout }: { view: GameView; layout: Layout }
               <span>{hint}</span>
             </p>
           )}
-          {tipFirst && <CoachTip view={view} />}
           {p.alive || phase === 'settle' ? controls : null}
-          {!tipFirst && <CoachTip view={view} />}
+          <CoachTip view={view} />
           {fastForward}
         </div>
       </section>

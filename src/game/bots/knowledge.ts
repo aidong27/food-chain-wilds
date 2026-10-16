@@ -112,7 +112,7 @@ export function observe(view: GameView, mem: BotMemory) {
   const me = view.me as Player;
   for (const p of others(view)) {
     weights(mem, p.id)[indexOf(me.animal)] = 1e-6;
-    if (p.drop && view.phase !== 'talk' && view.phase !== 'drop') mem.seenAt[p.id] = { region: p.drop, round: view.round };
+    if (p.drop && view.phase !== 'drop') mem.seenAt[p.id] = { region: p.drop, round: view.round };
   }
   for (const [loc, ids] of Object.entries(view.traces) as [RegionId, string[] | null][]) {
     for (const id of ids || []) if (id !== me.id) mem.seenAt[id] = { region: loc, round: view.round };

@@ -25,7 +25,7 @@ export default {
     if (request.method === 'OPTIONS') return preflight(request, cors.headers);
     const respond = (value: unknown, status = 200) => json(value, status, cors.headers);
 
-    if (url.pathname === '/api/health') return respond({ ok: true, game: 'food-chain', version: '2.2.1', protocol: PROTOCOL_VERSION });
+    if (url.pathname === '/api/health') return respond({ ok: true, game: 'food-chain', version: '2.3.0', protocol: PROTOCOL_VERSION });
     try {
       if (url.pathname === '/api/rooms' && request.method === 'POST') {
         const data = await readBody(request);

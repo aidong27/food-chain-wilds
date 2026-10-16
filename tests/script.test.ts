@@ -41,7 +41,7 @@ test('the tutorial wolf follows the player, finds them with alertness, and bites
   const reply = g.log.find(l => l.kind === 'private' && l.from === wolf.id && l.to === ME);
   assert.ok(reply?.text.includes('野兔'), reply?.text);
 
-  cmd(g, { type: 'ready' });
+  // The camp talks during the drop itself.
   assert.equal(g.phase, 'drop');
   cmd(g, { type: 'drop', region: 'meadow' });
   cmd(g, { type: 'ready' });
@@ -60,7 +60,7 @@ test('the tutorial wolf follows the player, finds them with alertness, and bites
     'alertness senses the wolf',
   );
   cmd(g, { type: 'move', region: 'river' });
-  cmd(g, { type: 'ready' });
+  // Both actions are spent, so the night moves on by itself.
   assert.equal(g.phase, 'food');
   assert.equal(wolf.location, 'meadow', 'scripted bots stay put');
   cmd(g, { type: 'food', choice: 'forage' });
@@ -131,6 +131,7 @@ test('normal matches are unscripted', () => {
   addPlayer(g, 'a', '甲');
   startGame(g, undefined, NOW);
   assert.equal(g.script, undefined);
-  advance(g, NOW);
   assert.equal(g.phase, 'drop');
+  advance(g, NOW);
+  assert.equal(g.phase, 'action');
 });

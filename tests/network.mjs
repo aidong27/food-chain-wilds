@@ -153,8 +153,8 @@ try {
   await b.send({ type: 'start' }, true);
   assert.equal(b.view.phase, 'lobby');
   await a.send({ type: 'start' });
-  await b.wait(() => b.view.phase === 'talk');
-  await c.wait(() => c.view.phase === 'talk');
+  await b.wait(() => b.view.phase === 'drop');
+  await c.wait(() => c.view.phase === 'drop');
   assert.equal(a.view.players.length, 8);
   assert.equal(a.view.players.filter(p => p.animal !== null).length, 1);
   assert.ok(!JSON.stringify(a.view).includes('credentials'));
@@ -180,13 +180,15 @@ try {
   await a.send({ type: 'guess', target: c.session.id, animal: 'dragon' }, true);
   pass('identity notes accept real animals only');
 
-  for (const client of [a, b, c]) await client.send({ type: 'ready' });
-  await a.wait(() => a.view.phase === 'drop');
+  // Talk and drop share the first phase: locking in a start is how you say you are done talking.
+  await a.send({ type: 'ready' }, true);
   await a.send({ type: 'drop', region: 'forest' });
   await a.send({ type: 'ready' });
   assert.equal(b.view.players.find(p => p.id === a.session.id).drop, null);
   await b.send({ type: 'drop', region: 'river' });
   await b.send({ type: 'ready' });
+  await c.wait(() => c.view.deadline - c.view.now <= 20_000);
+  pass('once everyone else is ready, the last person gets a short final countdown');
   await c.send({ type: 'drop', region: 'meadow' });
   await c.send({ type: 'ready' });
   await a.wait(() => a.view.phase === 'action');
@@ -201,10 +203,10 @@ try {
   pass('invalid movement rejected; valid movement stays private');
 
   for (const client of [a, b, c]) await client.send({ type: 'ready' });
-  await a.wait(() => a.view.phase === 'traces');
-  assert.equal(a.view.traces.ruins, null);
-  for (const client of [a, b, c]) await client.send({ type: 'ready' });
+  // Traces show from the calls on; there is no separate phase just for looking.
   await a.wait(() => a.view.phase === 'call');
+  assert.equal(a.view.traces.ruins, null);
+  assert.ok(Array.isArray(a.view.traces.river));
   await a.send({ type: 'call', target: b.session.id });
   await b.send({ type: 'call-answer', accept: true });
   await a.wait(() => a.view.call?.accepted);

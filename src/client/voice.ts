@@ -34,7 +34,7 @@ export class Voice {
   private partners(): string[] {
     const g = this.view;
     if (!g?.me?.alive) return [];
-    if (g.phase === 'talk' && g.me.voice) return g.players.filter(p => p.voice && p.alive && p.id !== this.me).map(p => p.id);
+    if (g.phase === 'drop' && g.me.voice) return g.players.filter(p => p.voice && p.alive && p.id !== this.me).map(p => p.id);
     const c = g.call;
     if (g.phase === 'call' && c?.accepted && (c.from === this.me || c.to === this.me)) return [c.from === this.me ? c.to : c.from];
     return [];
@@ -85,7 +85,7 @@ export class Voice {
     const partners = this.partners();
     for (const id of [...this.peers.keys()]) if (!partners.includes(id)) this.closePeer(id);
     if (!partners.length) {
-      if (!(view.phase === 'talk' && view.me?.voice)) this.stop();
+      if (!(view.phase === 'drop' && view.me?.voice)) this.stop();
       return;
     }
     try {

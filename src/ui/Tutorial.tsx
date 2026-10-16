@@ -58,7 +58,7 @@ const STEPS: Step[] = [
   {
     id: 'welcome',
     round: 1,
-    phase: 'talk',
+    phase: 'drop',
     title: '欢迎来到荒野',
     text: () => '这是 8 只动物的隐藏身份生存游戏：每个人只知道自己是什么。活过七个夜晚就是胜利。前两夜，我会一步一步带你走。',
     next: '开始',
@@ -66,7 +66,7 @@ const STEPS: Step[] = [
   {
     id: 'you',
     round: 1,
-    phase: 'talk',
+    phase: 'drop',
     focus: ['me'],
     tab: 'play',
     title: '你是一头麋鹿',
@@ -81,7 +81,7 @@ const STEPS: Step[] = [
   {
     id: 'liar',
     round: 1,
-    phase: 'talk',
+    phase: 'drop',
     focus: ['clues'],
     tab: 'play',
     ready: c => spoke(c, 2) && spoke(c, 3),
@@ -96,7 +96,7 @@ const STEPS: Step[] = [
   {
     id: 'ask',
     round: 1,
-    phase: 'talk',
+    phase: 'drop',
     focus: ['composer'],
     tab: 'chat',
     enter: c => composeMessage(wolf(c), '你是什么动物？'),
@@ -107,7 +107,7 @@ const STEPS: Step[] = [
   {
     id: 'reply',
     round: 1,
-    phase: 'talk',
+    phase: 'drop',
     focus: ['chat'],
     tab: 'chat',
     dock: 'top',
@@ -118,15 +118,6 @@ const STEPS: Step[] = [
         ? '2 号一口咬定自己是野兔。是真是假？先记在心里，荒野会给出答案。'
         : '回答未必是真话。先记在心里，荒野会给出答案。',
     next: '继续',
-  },
-  {
-    id: 'to-drop',
-    round: 1,
-    phase: 'talk',
-    focus: ['ready'],
-    tab: 'play',
-    title: '结束交流',
-    text: () => '交流随时可以结束。点击「前往投放」。',
   },
   {
     id: 'drop',
@@ -221,22 +212,14 @@ const STEPS: Step[] = [
         : '先选一个带虚线圈的相邻地区，再点「移动」。',
   },
   {
-    id: 'end-action',
-    round: 1,
-    phase: 'action',
-    focus: ['ready'],
-    tab: 'play',
-    title: '结束行动',
-    text: () => '两次行动都用完了。点「结束行动」，其他居民会同时行动。',
-  },
-  {
     id: 'traces',
     round: 1,
     phase: 'food',
     focus: ['map'],
     tab: 'play',
     title: '足迹',
-    text: () => '现在能看到你所在和相邻地区的足迹（紫色数字）。足迹只说明有人来过，不代表 Ta 还在那里。你刚离开的地方也留下了你的足迹。',
+    text: () =>
+      '两次行动用完，夜晚就进入了进食。现在能看到你所在和相邻地区的足迹（紫色数字）。足迹只说明有人来过，不代表 Ta 还在那里。你刚离开的地方也留下了你的足迹。',
     next: '明白',
   },
   {
@@ -283,7 +266,7 @@ const STEPS: Step[] = [
   {
     id: 'accused',
     round: 2,
-    phase: 'talk',
+    phase: 'drop',
     focus: ['chat'],
     tab: 'chat',
     dock: 'top',
@@ -299,7 +282,7 @@ const STEPS: Step[] = [
   {
     id: 'mark',
     round: 2,
-    phase: 'talk',
+    phase: 'drop',
     focus: [`player-${TUTORIAL_SEATS.wolf}`],
     tab: 'people',
     done: c => me(c).guesses[wolf(c)] === 'wolf',
@@ -310,7 +293,7 @@ const STEPS: Step[] = [
   {
     id: 'own',
     round: 2,
-    phase: 'talk',
+    phase: 'drop',
     tab: 'play',
     title: '接下来交给你',
     text: () => '这一夜由你自己决定：交流、投放、行动、进食。我只在行动面板里轻声提醒。小心，食物会越来越少。',
