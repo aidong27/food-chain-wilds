@@ -9,6 +9,7 @@ import {
   species,
   type FoodChoice,
   type PhaseId,
+  type RegionId,
   type SpeciesId,
 } from '../game/data';
 import type { GameView, ViewEntry } from '../game/view';
@@ -237,43 +238,40 @@ function Camp({ view, layout }: { view: GameView; layout: Layout }) {
   );
 }
 
+/** A region's illustration behind a card, greyed out for the fallen. */
+function SceneArt({ id, faded }: { id: RegionId; faded?: boolean }) {
+  return <span class={`scene-art art-${id} ${faded ? 'faded' : ''}`} aria-hidden="true" />;
+}
+
 function DropControls({ view, layout }: { view: GameView; layout: Layout }) {
   const p = view.me!;
   const chosen = p.drop ? region(p.drop) : null;
   const food = chosen ? view.resources[chosen.id] : 0;
-  // On phones the map right above is the picker; wider screens also get six large buttons.
-  if (layout === 'narrow')
-    return (
-      <>
-        <div class={`drop-pick ${chosen ? 'chosen' : ''}`} aria-live="polite">
-          <span class="dp-icon">
-            <Icon name={chosen ? regionIcon(chosen.id) : 'tap'} size={20} />
-          </span>
-          <p>
-            <b>{chosen ? `投放到${chosen.name}` : '点地图上的地区，选今晚的起点'}</b>
-            <small>
-              {chosen
-                ? `${food ? `${food} 份食物` : '没有食物'} · ${chosen.description}${p.ready ? '' : '锁定前可以随时更改。'}`
-                : '有食物（绿叶）的地区容易吃饱，也更容易遇到捕食者。'}
-            </small>
-          </p>
-        </div>
-        <Camp view={view} layout={layout} />
-      </>
-    );
+  const narrow = layout === 'narrow';
   return (
     <>
-      <RegionPicker view={view} mode="drop" />
-      <p class="ap-note">
-        {chosen ? (
-          <>
-            将投放到 <b>{chosen.name}</b>：{food ? `${food} 份食物` : '没有食物'}。{chosen.description}
-            {p.ready ? '' : ' 锁定前可以随时更改。'}
-          </>
+      {/* On phones the map right above is the picker; wider screens also get six large buttons. */}
+      {!narrow && <RegionPicker view={view} mode="drop" />}
+      <div aria-live="polite">
+        {chosen || narrow ? (
+          <div class={`drop-pick ${chosen ? 'chosen scene' : ''}`}>
+            {chosen && <SceneArt id={chosen.id} />}
+            <span class="dp-icon">
+              <Icon name={chosen ? regionIcon(chosen.id) : 'tap'} size={20} />
+            </span>
+            <p>
+              <b>{chosen ? `投放到${chosen.name}` : '点地图上的地区，选今晚的起点'}</b>
+              <small>
+                {chosen
+                  ? `${food ? `${food} 份食物` : '没有食物'} · ${chosen.description}${p.ready ? '' : '锁定前可以随时更改。'}`
+                  : '有食物（绿叶）的地区容易吃饱，也更容易遇到捕食者。'}
+              </small>
+            </p>
+          </div>
         ) : (
-          '点地图或上方地区，选一个本回合的起点。有食物的地区容易吃饱，也更容易遇到捕食者。'
+          <p class="ap-note">点地图或上方地区，选一个本回合的起点。有食物的地区容易吃饱，也更容易遇到捕食者。</p>
         )}
-      </p>
+      </div>
       <Camp view={view} layout={layout} />
     </>
   );
@@ -586,7 +584,8 @@ export function NightReport({ view }: { view: GameView }) {
       : '你正在观战';
   return (
     <div class={`night-report ${mood}`} data-tut="report">
-      <div class="nr-head">
+      <div class="nr-head scene">
+        <SceneArt id={p.location} faded={!p.alive} />
         <span class="nr-icon">
           <Icon name={!p.alive ? 'death' : p.fed ? 'fed' : 'hunger'} size={24} />
         </span>

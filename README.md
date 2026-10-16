@@ -4,6 +4,13 @@
 
 **在线游玩：[GitHub Pages](https://aidong27.github.io/food-chain-wilds/)** · [原站](https://food-chain-wilds.food-chain-game.workers.dev/)
 
+## 2.4：荒野插画
+
+- **地区插画。** 选好起点后，投放卡片会换上该地区的插画。每夜结算报告的标题栏画着你这一夜所在的地方，倒下后变成灰色。
+- **终局画面。** 活过七夜，看到晨光越过山脊；倒下了，看到月下空荡的林间空地。桌面上文字移到画面较暗的左侧，动物头像在右。
+- **分享卡片。** 在支持链接预览的应用里贴出游戏链接，会显示月夜林间与书法标题的预览图。
+- 每张插画约 100–150 KB，只在用到时加载。规则、联机协议与存档都没有变化。
+
 ## 2.3：节奏更快
 
 一夜从「交流 → 投放 → 行动 → 进食 → 结算」五步压成四步，等待和多余的确认都去掉了。规则、数值与七夜长度不变。
@@ -188,6 +195,6 @@ Worker 名称、`GameRoom` 类名、SQLite 存储表与 `v1` migration 都没有
 - **对局保存。** 联机房间 24 小时过期，没有跨设备账号。单人存档只保存在本机浏览器。
 - **电脑对话。** 电脑玩家使用规则与模板生成对话，不调用外部大模型，只理解身份、地点、提问与指控这几类简单表达。
 
-地图和动物插画由 ImageGen 为本项目生成，已转为本地 WebP 资源。标题字体是 [马善政楷书（Ma Shan Zheng）](https://github.com/googlefonts/mashanzheng) 的子集，按 SIL Open Font License 1.1 分发（见 `src/assets/fonts/OFL.txt`）；图标来自 [Lucide](https://lucide.dev)（ISC 许可）。
+地图和动物插画由 ImageGen 为本项目生成，已转为本地 WebP 资源；地区、终局插画与分享图背景由 Codex 生成（`public/art/regions/`、`ending-*.webp`、`share-bg.jpg`）。分享卡片 `public/art/og-card.jpg` 是在 `share-bg.jpg` 左侧叠加书法标题后渲染的。标题字体是 [马善政楷书（Ma Shan Zheng）](https://github.com/googlefonts/mashanzheng) 的子集，按 SIL Open Font License 1.1 分发（见 `src/assets/fonts/OFL.txt`）；图标来自 [Lucide](https://lucide.dev)（ISC 许可）。
 
 标题字体只收录标题、阶段、地区、动物和电脑名字用到的字。改动这些文字后，用 `npx tsx scripts/brush-glyphs.ts` 列出字表，再按脚本注释里的 `pyftsubset` 命令（Python fonttools）重新生成；缺字时会自动退回系统楷体。
