@@ -72,6 +72,7 @@ export function PrimaryButton({ view, short }: { view: GameView; short?: boolean
     <button
       class={`btn primary ${short ? '' : 'large'} ready-btn`}
       data-tut="ready"
+      title="快捷键：Enter 或空格"
       disabled={readyBlocked(view, connected)}
       onClick={() => ready(view)}
     >

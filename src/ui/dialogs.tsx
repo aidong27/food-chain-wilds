@@ -1,6 +1,6 @@
 import type { ComponentChildren, JSX } from 'preact';
 import { Fragment } from 'preact';
-import { useEffect, useReducer, useRef } from 'preact/hooks';
+import { useEffect, useLayoutEffect, useReducer, useRef } from 'preact/hooks';
 import { RULES, SPECIES, predatorsOf, region, species, type Diet, type SpeciesId } from '../game/data';
 import { TUTORIAL_SEATS } from '../game/tutorial';
 import { getState, leave, markTutorial, send, startTutorial, toggleSound, useApp } from '../client/store';
@@ -40,7 +40,8 @@ export function DialogHost() {
 
 function Modal({ spec }: { spec: DialogSpec }) {
   const ref = useRef<HTMLDialogElement>(null);
-  useEffect(() => {
+  // Opened in the same task as the tap that asked for it, so Chrome lets the very first Esc close it.
+  useLayoutEffect(() => {
     const d = ref.current!;
     if (!d.open) d.showModal();
     const onClose = () => closeDialog();

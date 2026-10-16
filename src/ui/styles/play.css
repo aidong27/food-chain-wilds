@@ -1039,6 +1039,34 @@
   opacity: 0.42;
 }
 
+/* With a keyboard, 1–4 pick the tiles in order (see useShortcuts in Play.tsx). */
+@media (hover: hover) and (pointer: fine) {
+  .action-panel .tile-grid {
+    counter-reset: tile;
+  }
+
+  .action-panel .tile {
+    position: relative;
+    counter-increment: tile;
+  }
+
+  .action-panel .tile::after {
+    content: counter(tile);
+    position: absolute;
+    right: 8px;
+    bottom: 6px;
+    min-width: 16px;
+    padding: 0 4px;
+    border-radius: 5px;
+    font-size: 10.5px;
+    font-weight: 700;
+    line-height: 16px;
+    text-align: center;
+    color: var(--text-4);
+    border: 1px solid var(--line-2);
+  }
+}
+
 /* What the main button eats when you lock in without choosing. */
 .tile.suggested {
   position: relative;

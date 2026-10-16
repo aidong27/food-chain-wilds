@@ -1,0 +1,16 @@
+{
+  "name": "食物链 · 荒野生存博弈",
+  "short_name": "食物链",
+  "description": "隐藏动物身份，在痕迹、谎言与稀缺食物之间活过七夜。单人练习无需联网。",
+  "lang": "zh-CN",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#0a1214",
+  "theme_color": "#0a1214",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

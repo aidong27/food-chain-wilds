@@ -170,6 +170,17 @@ function noticeChanges(before: GameView | null, after: GameView) {
     }
     if (before) play('phase');
   }
+  // Online, once everyone else is ready the last person's timer is cut short; say why.
+  const hurried =
+    before &&
+    phaseKey(before) === phaseKey(after) &&
+    after.mode === 'online' &&
+    after.phase !== 'call' &&
+    after.me?.alive &&
+    !after.me.ready &&
+    after.deadline &&
+    after.deadline < before.deadline - 5000;
+  if (hurried) toast(`其他人都准备好了，还剩 ${Math.max(1, Math.round((after.deadline - after.now) / 1000))} 秒。`);
   const lastSeen = before?.log.at(-1)?.id ?? Infinity;
   const fresh: ViewEntry[] = before ? after.log.filter(l => l.id > lastSeen) : [];
   const me = after.me?.id;
