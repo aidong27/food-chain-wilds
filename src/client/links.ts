@@ -59,8 +59,15 @@ export function savedSolo(): SavedSolo | null {
 function upgradeFrom2(saved: SavedSolo) {
   const game = saved.game as Omit<Game, 'phase'> & { phase: string };
   if (game.phase === 'talk') game.phase = 'drop';
+  if (typeof saved.tutorial === 'number') saved.tutorial = tutorialStepFrom2(saved.tutorial);
   saved.v = game.version = STATE_VERSION;
 }
+
+/**
+ * Where a tutorial step saved by 2.2 is now. 2.3 removed step 5 ("end the talk")
+ * and step 13 ("end your actions"); a removed step resumes at the one after it.
+ */
+export const tutorialStepFrom2 = (step: number) => step - (step > 13 ? 2 : step > 5 ? 1 : 0);
 
 export class LocalLink implements Link {
   readonly kind = 'local';

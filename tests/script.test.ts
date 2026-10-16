@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { REGIONS, species } from '../src/game/data';
 import { addPlayer, advance, applyCommand, createGame, startGame } from '../src/game/engine';
+import { tutorialStepFrom2 } from '../src/client/links';
 import { TUTORIAL_SEATS, createTutorialGame } from '../src/game/tutorial';
 import type { Game } from '../src/game/types';
 import { playerView } from '../src/game/view';
@@ -134,4 +135,41 @@ test('normal matches are unscripted', () => {
   assert.equal(g.phase, 'drop');
   advance(g, NOW);
   assert.equal(g.phase, 'action');
+});
+
+test('tutorial progress saved by 2.2 resumes at the same lesson', () => {
+  // The steps of src/ui/Tutorial.tsx in 2.2; 2.3 dropped "to-drop" and "end-action".
+  const before = [
+    'welcome',
+    'you',
+    'liar',
+    'ask',
+    'reply',
+    'to-drop',
+    'drop',
+    'lock',
+    'reveal',
+    'alert',
+    'danger',
+    'escape',
+    'move',
+    'end-action',
+    'traces',
+    'forage',
+    'lock-food',
+    'report',
+    'next-night',
+    'accused',
+    'mark',
+    'own',
+    'hint-drop',
+    'hint-action',
+    'hint-food',
+    'finale',
+  ];
+  const now = before.filter(id => id !== 'to-drop' && id !== 'end-action');
+  before.forEach((id, i) => {
+    const next = { 'to-drop': 'drop', 'end-action': 'traces' }[id] ?? id;
+    assert.equal(now[tutorialStepFrom2(i)], next, id);
+  });
 });
