@@ -2312,6 +2312,76 @@
   color: var(--text-3);
 }
 
+/* Region illustrations behind the chosen start and the night report. */
+
+.scene {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+}
+
+.scene-art {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: #0f1b1d no-repeat center 38% / cover;
+}
+
+.scene-art::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, rgba(8, 14, 16, 0.9) 0%, rgba(8, 14, 16, 0.62) 50%, rgba(8, 14, 16, 0.22) 100%);
+}
+
+.scene-art.faded {
+  filter: grayscale(0.85) brightness(0.7);
+}
+
+.art-forest {
+  background-image: url('/art/regions/forest.webp');
+}
+
+.art-river {
+  background-image: url('/art/regions/river.webp');
+}
+
+.art-cliff {
+  background-image: url('/art/regions/cliff.webp');
+}
+
+.art-meadow {
+  background-image: url('/art/regions/meadow.webp');
+}
+
+.art-shrub {
+  background-image: url('/art/regions/shrub.webp');
+}
+
+.art-ruins {
+  background-image: url('/art/regions/ruins.webp');
+}
+
+.scene :is(b, strong, small) {
+  text-shadow: 0 1px 10px rgba(0, 0, 0, 0.65);
+}
+
+.drop-pick.scene {
+  min-height: 88px;
+}
+
+.drop-pick.scene small,
+.nr-head.scene small {
+  color: var(--text-2);
+}
+
+.nr-head.scene {
+  min-height: 104px;
+  padding: 16px;
+  border-radius: 16px;
+  border: 1px solid var(--line);
+}
+
 .play-narrow .coach {
   padding: 8px 4px 8px 12px;
 }

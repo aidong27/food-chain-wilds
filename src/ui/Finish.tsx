@@ -59,6 +59,7 @@ export function Finish() {
   const survivors = g.players.filter(p => p.alive).length;
   return (
     <main class="finish end-screen">
+      <div class={`finish-bg ${me.alive ? 'dawn' : 'night'}`} aria-hidden="true" />
       <section class="finish-hero">
         <div class={`finish-portrait ${me.alive ? 'won' : 'lost'}`}>
           <Portrait animal={me.animal} face />

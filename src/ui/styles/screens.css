@@ -881,14 +881,50 @@
   padding: 44px 24px 64px;
 }
 
+/* The morning after, painted: dawn for survivors, a moonlit clearing for the fallen.
+   Its dark left side holds the words, so the portrait stands on the right. It spans
+   the page, and the sections after it are positioned so they paint over it. */
+.finish-bg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: min(780px, 100vh);
+  background: no-repeat 70% 35% / cover;
+  -webkit-mask-image: linear-gradient(180deg, #000 55%, transparent);
+  mask-image: linear-gradient(180deg, #000 55%, transparent);
+}
+
+.finish-bg::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(90deg, rgba(8, 14, 16, 0.92) 0%, rgba(8, 14, 16, 0.74) 40%, rgba(8, 14, 16, 0.24) 72%, rgba(8, 14, 16, 0.4) 100%),
+    linear-gradient(180deg, rgba(8, 14, 16, 0.5) 0%, transparent 24%);
+}
+
+.finish-bg.dawn {
+  background-image: url('/art/ending-dawn.webp');
+}
+
+.finish-bg.night {
+  background-image: url('/art/ending-night.webp');
+}
+
+.finish > :not(.finish-bg) {
+  position: relative;
+}
+
 .finish-hero {
   display: grid;
-  grid-template-columns: 250px minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr) 250px;
   gap: 44px;
   align-items: center;
 }
 
 .finish-portrait {
+  order: 2;
   position: relative;
   aspect-ratio: 3 / 4;
   overflow: hidden;
@@ -1367,7 +1403,17 @@
     text-align: center;
   }
 
+  .finish-bg {
+    height: 460px;
+    background-position: 85% 30%;
+  }
+
+  .finish-bg::after {
+    background: linear-gradient(180deg, rgba(8, 14, 16, 0.45) 0%, rgba(8, 14, 16, 0.55) 40%, rgba(8, 14, 16, 0.88) 100%);
+  }
+
   .finish-portrait {
+    order: 0;
     width: 124px;
     border-radius: 22px;
   }
